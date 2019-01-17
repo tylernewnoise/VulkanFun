@@ -1,7 +1,13 @@
 #include <iostream>
 // EntryPoint
-
 #include "vulkan/vulkan.h"
+
+// ErrorHandling. Linux specific.
+#define ASSERT_VULKAN(val)\
+        if(val != VK_SUCCESS){\
+            std::cout<<val<<std::endl;\
+            __builtin_trap();\
+}
 
 VkInstance instance;
 
@@ -27,10 +33,7 @@ int main() {
 
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, &instance);
 
-    if (result != VK_SUCCESS) {
-        std::cout<<result<<std::endl;
-        __builtin_trap();
-    }
+    ASSERT_VULKAN(result);
 
     return 0;
 }
