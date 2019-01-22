@@ -1,5 +1,6 @@
 // EntryPoint for our Vulkan project.
 #include <iostream>
+#include <vector>
 #include "vulkan/vulkan.h"
 
 // ErrorHandling. Linux specific.
@@ -9,6 +10,7 @@
             __builtin_trap();\
 }
 
+VkDevice device;
 VkInstance instance;
 
 // Print useful information about graphic card.
@@ -25,6 +27,8 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
     std::cout << "Vendor ID:                    " << properties.vendorID << std::endl;
     std::cout << "Device ID:                    " << properties.deviceID << std::endl;
     std::cout << "Device Type:                  " << properties.deviceType << std::endl;
+    std::cout << "discreteQueuePriorities:      " << properties.limits.discreteQueuePriorities
+              << std::endl;
     VkPhysicalDeviceFeatures features;
     vkGetPhysicalDeviceFeatures(device, &features);
     std::cout << "GeometryShader:               " << features.geometryShader << std::endl;
@@ -73,13 +77,47 @@ int main() {
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
+    // Layers and Extensions
+    uint32_t amountOfLayers = 0;
+    vkEnumerateInstanceLayerProperties(&amountOfLayers, nullptr);
+    auto *layers = new VkLayerProperties[amountOfLayers];
+    vkEnumerateInstanceLayerProperties(&amountOfLayers, layers);
+
+    std::cout << "Amount of Instance Layers: " << amountOfLayers << std::endl;
+    for (int i = 0; i < amountOfLayers; i++) {
+        std::cout << std::endl;
+        std::cout << "Name:         " << layers[i].layerName << std::endl;
+        std::cout << "SpecVersion:  " << layers[i].specVersion << std::endl;
+        std::cout << "Impl Version: " << layers[i].implementationVersion << std::endl;
+        std::cout << "Description:  " << layers[i].description << std::endl;
+    }
+    std::cout << std::endl;
+
+    // Extensions
+    uint32_t amountOfExtensions = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, nullptr);
+    auto *extensions = new VkExtensionProperties[amountOfExtensions];
+    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, extensions);
+
+    std::cout << "Amount of Extensions: " << amountOfExtensions << std::endl;
+    for (int i = 0; i < amountOfExtensions; i++) {
+        std::cout << std::endl;
+        std::cout << "Name:         " << extensions[i].extensionName << std::endl;
+        std::cout << "SpecVersion:  " << extensions[i].specVersion << std::endl;
+    }
+    std::cout << std::endl;
+
+    const std::vector<const char *> validationLayers = {
+            "VK_LAYER_LUNARG_standard_validation"
+    };
+
     VkInstanceCreateInfo instanceInfo;
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pNext = nullptr;
     instanceInfo.flags = 0;
     instanceInfo.pApplicationInfo = &appInfo;
-    instanceInfo.enabledLayerCount = 0;
-    instanceInfo.ppEnabledLayerNames = nullptr;
+    instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    instanceInfo.ppEnabledLayerNames = validationLayers.data();
     instanceInfo.enabledExtensionCount = 0;
     instanceInfo.ppEnabledExtensionNames = nullptr;
 
@@ -92,7 +130,10 @@ int main() {
     ASSERT_VULKAN(result);
 
     auto *physicalDevices = new VkPhysicalDevice[amountOfPhysicalDevices];
-
+    // Alternative with vector
+    // std::vector<VkPhysicalDevice> physicalDevices;
+    // physicalDevices.reserve(amountOfPhysicalDevices);
+    // result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices.data());
     result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices);
     ASSERT_VULKAN(result);
 
@@ -100,6 +141,46 @@ int main() {
     for (int i = 0; i < amountOfPhysicalDevices; i++) {
         printStatsOfDevice(physicalDevices[i]);
     }
+
+    float queuePrios[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    VkDeviceQueueCreateInfo deviceQueueCreateInfo;
+    deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    deviceQueueCreateInfo.pNext = nullptr;
+    deviceQueueCreateInfo.flags = 0;
+    deviceQueueCreateInfo.queueFamilyIndex = 0; //TODO Choose correct family index.
+    deviceQueueCreateInfo.queueCount = 1; //TODO Validity check!
+    deviceQueueCreateInfo.pQueuePriorities = queuePrios;
+
+    VkPhysicalDeviceFeatures usedFeatueres{};
+
+    VkDeviceCreateInfo deviceCreateInfo;
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.pNext = nullptr;
+    deviceCreateInfo.flags = 0;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
+    deviceCreateInfo.enabledLayerCount = 0;
+    deviceCreateInfo.ppEnabledLayerNames = nullptr;
+    deviceCreateInfo.enabledExtensionCount = 0;
+    deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+    deviceCreateInfo.pEnabledFeatures = &usedFeatueres;
+
+    //TODO choose better device instead of [0]
+    result = vkCreateDevice(physicalDevices[0], &deviceCreateInfo, nullptr, &device);
+
+    ASSERT_VULKAN(result)
+
+    VkQueue queue;
+    vkGetDeviceQueue(device, 0, 0, &queue);
+
+    // Cleanup
+    vkDeviceWaitIdle(device);
+    vkDestroyDevice(device, nullptr);
+    vkDestroyInstance(instance, nullptr);
+
+    delete[] layers;
+    delete[] extensions;
+    delete[] physicalDevices; // don't need this if vector<> is used
 
     return 0;
 }
