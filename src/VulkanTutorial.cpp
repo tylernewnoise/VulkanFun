@@ -95,6 +95,16 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
               << std::endl;
     std::cout << std::endl;
 
+    // SurfaceFormatOutput (for colors etc...)
+    uint32_t amountOfFormats = 0;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &amountOfFormats, nullptr);
+    auto *surfaceFormats = new VkSurfaceFormatKHR[amountOfFormats];
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &amountOfFormats, surfaceFormats);
+    std::cout << "Amount of Formats: " << amountOfFormats << std::endl;
+    for(int i=0; i < amountOfFormats; i++) {
+        std::cout << "Format: " << surfaceFormats[i].format << std::endl;
+    }
+
     delete[] familyProperties;
 }
 
