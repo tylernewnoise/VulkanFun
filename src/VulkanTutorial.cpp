@@ -1,7 +1,11 @@
 // EntryPoint for our Vulkan project.
 #include <iostream>
 #include <vector>
-#include "vulkan/vulkan.h"
+
+#define GLFW_INCLUDE_VULKAN
+
+#include <GLFW/glfw3.h>
+//#include "vulkan/vulkan.h"
 
 // ErrorHandling. Linux specific.
 #define ASSERT_VULKAN(val)\
@@ -12,6 +16,7 @@
 
 VkDevice device;
 VkInstance instance;
+GLFWwindow *window;
 
 // Print useful information about graphic card.
 void printStatsOfDevice(VkPhysicalDevice &device) {
@@ -67,7 +72,14 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
     }
 }
 
-int main() {
+void startGLFW() {
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Window is not resizable
+    window = glfwCreateWindow(640, 480, "Vulkan Tut", nullptr, nullptr);
+}
+
+void startVulkan() {
     VkApplicationInfo appInfo;
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pNext = nullptr;
@@ -173,14 +185,36 @@ int main() {
     VkQueue queue;
     vkGetDeviceQueue(device, 0, 0, &queue);
 
+    delete[] layers;
+    delete[] extensions;
+    delete[] physicalDevices; // don't need this if vector<> is used
+}
+
+void endlessLoop() {
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+    }
+}
+
+void shutdownVulkan() {
     // Cleanup
     vkDeviceWaitIdle(device);
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
+}
 
-    delete[] layers;
-    delete[] extensions;
-    delete[] physicalDevices; // don't need this if vector<> is used
+void shutdownGLFW() {
+    // Cleanup
+    glfwDestroyWindow(window);
+}
 
+int main() {
+    startGLFW();
+    startVulkan();
+    endlessLoop();
+    shutdownVulkan();
+    shutdownGLFW();
+    std::cout << std::endl;
+    std::cout << "GoodBye" << std::endl;
     return 0;
 }
