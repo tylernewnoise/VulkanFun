@@ -15,6 +15,7 @@
 }
 
 VkDevice device;
+VkSurfaceKHR surface;
 VkInstance instance;
 GLFWwindow *window;
 
@@ -123,6 +124,10 @@ void startVulkan() {
             "VK_LAYER_LUNARG_standard_validation"
     };
 
+    // Get extensions form glfw to make it platform independent
+    uint32_t amountOfGlfwExtensions = 0;
+    auto glfwExtensions = glfwGetRequiredInstanceExtensions(&amountOfGlfwExtensions);
+
     VkInstanceCreateInfo instanceInfo;
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pNext = nullptr;
@@ -130,11 +135,13 @@ void startVulkan() {
     instanceInfo.pApplicationInfo = &appInfo;
     instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     instanceInfo.ppEnabledLayerNames = validationLayers.data();
-    instanceInfo.enabledExtensionCount = 0;
-    instanceInfo.ppEnabledExtensionNames = nullptr;
+    instanceInfo.enabledExtensionCount = amountOfGlfwExtensions;
+    instanceInfo.ppEnabledExtensionNames = glfwExtensions;
 
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, &instance);
+    ASSERT_VULKAN(result);
 
+    result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
     ASSERT_VULKAN(result);
 
     uint32_t amountOfPhysicalDevices = 0;
@@ -200,6 +207,7 @@ void shutdownVulkan() {
     // Cleanup
     vkDeviceWaitIdle(device);
     vkDestroyDevice(device, nullptr);
+    vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
 }
 
