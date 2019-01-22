@@ -15,9 +15,15 @@
 }
 
 VkDevice device;
+VkSwapchainKHR swapchain;
 VkSurfaceKHR surface;
 VkInstance instance;
+VkImageView *imageViews;
 GLFWwindow *window;
+uint32_t amountOfImagesInSwapChain = 0;
+
+const uint32_t WIDTH = 640;
+const uint32_t HEIGHT = 480;
 
 // Print useful information about graphic card.
 void printStatsOfDevice(VkPhysicalDevice &device) {
@@ -100,12 +106,28 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &amountOfFormats, nullptr);
     auto *surfaceFormats = new VkSurfaceFormatKHR[amountOfFormats];
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &amountOfFormats, surfaceFormats);
+
     std::cout << "Amount of Formats: " << amountOfFormats << std::endl;
-    for(int i=0; i < amountOfFormats; i++) {
+    for (int i = 0; i < amountOfFormats; i++) {
         std::cout << "Format: " << surfaceFormats[i].format << std::endl;
     }
 
+    // Presentation modes of graphics card
+    uint32_t amountOfPresentationModes = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &amountOfPresentationModes, nullptr);
+    auto *presentModes = new VkPresentModeKHR[amountOfPresentationModes];
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &amountOfPresentationModes,
+                                              presentModes);
+
+    std::cout << std::endl;
+    std::cout << "Amount of Presentation Modes: " << amountOfPresentationModes << std::endl;
+    for (int i = 0; i < amountOfPresentationModes; i++) {
+        std::cout << "PresentationsModes: " << presentModes[i] << std::endl;
+    }
+
     delete[] familyProperties;
+    delete[] surfaceFormats;
+    delete[] presentModes;
 }
 
 void startGLFW() {
@@ -207,6 +229,10 @@ void startVulkan() {
 
     VkPhysicalDeviceFeatures usedFeatueres{};
 
+    const std::vector<const char*> deviceExtensions ={
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
     VkDeviceCreateInfo deviceCreateInfo;
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pNext = nullptr;
@@ -215,8 +241,8 @@ void startVulkan() {
     deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
     deviceCreateInfo.enabledLayerCount = 0;
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
-    deviceCreateInfo.enabledExtensionCount = 0;
-    deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     deviceCreateInfo.pEnabledFeatures = &usedFeatueres;
 
     //TODO choose better device instead of [0]
@@ -227,6 +253,69 @@ void startVulkan() {
     VkQueue queue;
     vkGetDeviceQueue(device, 0, 0, &queue);
 
+    auto surfceSupport = static_cast<VkBool32>(false);
+    result = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevices[0], 0, surface, &surfceSupport);
+    ASSERT_VULKAN(result);
+
+    if (!surfceSupport) {
+        std::cerr << "Surface not supported!" << std::endl;
+        __builtin_trap();
+    }
+
+    VkSwapchainCreateInfoKHR swapchainCreateInfo;
+    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainCreateInfo.pNext = nullptr;
+    swapchainCreateInfo.flags = 0;
+    swapchainCreateInfo.surface = surface;
+    swapchainCreateInfo.minImageCount = 3; // TODO check if valid
+    swapchainCreateInfo.imageFormat = VK_FORMAT_B8G8R8A8_UNORM; // TODO check if valid
+    swapchainCreateInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // TODO check if valid
+    swapchainCreateInfo.imageExtent = VkExtent2D{WIDTH, HEIGHT};
+    swapchainCreateInfo.imageArrayLayers = 1;
+    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // TODO check if valid
+    swapchainCreateInfo.queueFamilyIndexCount = 0;
+    swapchainCreateInfo.pQueueFamilyIndices = nullptr;
+    swapchainCreateInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; // TODO check for VK_PRESENT_MODE_MAILBOX_KHR
+    swapchainCreateInfo.clipped = VK_TRUE;
+    swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE; // TODO remember for image resizing
+
+    // Swapchain
+    result = vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
+    ASSERT_VULKAN(result);
+
+
+    vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, nullptr);
+    auto *swapchainImages = new VkImage[amountOfImagesInSwapChain];
+    result = vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, swapchainImages);
+    ASSERT_VULKAN(result);
+
+    // ImageView
+    imageViews = new VkImageView[amountOfImagesInSwapChain];
+    for (int i=0; i < amountOfImagesInSwapChain; i++) {
+        VkImageViewCreateInfo imageViewCreateInfo;
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.pNext = nullptr;
+        imageViewCreateInfo.flags = 0;
+        imageViewCreateInfo.image = swapchainImages[i];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO check if valid
+        imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.baseMipLevel = 0; // no mipmapping
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+        result = vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageViews[i]);
+        ASSERT_VULKAN(result);
+    }
+
+    delete[] swapchainImages;
     delete[] layers;
     delete[] extensions;
     delete[] physicalDevices; // don't need this if vector<> is used
@@ -241,6 +330,11 @@ void endlessLoop() {
 void shutdownVulkan() {
     // Cleanup
     vkDeviceWaitIdle(device);
+    for(int i = 0; i < amountOfImagesInSwapChain; i++) {
+        vkDestroyImageView(device, imageViews[i], nullptr);
+    }
+    delete[] imageViews;
+    vkDestroySwapchainKHR(device, swapchain, nullptr);
     vkDestroyDevice(device, nullptr);
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
