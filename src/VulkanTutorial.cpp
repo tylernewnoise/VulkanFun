@@ -1,6 +1,7 @@
 // EntryPoint for our Vulkan project.
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 #define GLFW_INCLUDE_VULKAN
 
@@ -14,16 +15,20 @@
             __builtin_trap();\
 }
 
+// TODO namespaces
 VkDevice device;
-VkSwapchainKHR swapchain;
-VkSurfaceKHR surface;
 VkInstance instance;
+VkSurfaceKHR surface;
 VkImageView *imageViews;
+VkSwapchainKHR swapchain;
+VkShaderModule shaderModuleVert;
+VkShaderModule shaderModuleFrag;
 GLFWwindow *window;
 uint32_t amountOfImagesInSwapChain = 0;
 
 const uint32_t WIDTH = 640;
 const uint32_t HEIGHT = 480;
+
 
 // Print useful information about graphic card.
 void printStatsOfDevice(VkPhysicalDevice &device) {
@@ -130,11 +135,37 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
     delete[] presentModes;
 }
 
+std::vector<char> readFile(const std::string &filename) {
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    if (file) {
+        size_t fileSize = static_cast<size_t>(file.tellg());
+        std::vector<char> fileBuffer(fileSize);
+        file.seekg(0);
+        file.read(fileBuffer.data(), fileSize);
+        file.close();
+        return fileBuffer;
+    } else {
+        throw std::runtime_error("Failed to open file!");
+    }
+}
+
 void startGLFW() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Window is not resizable
     window = glfwCreateWindow(640, 480, "Vulkan Tut", nullptr, nullptr);
+}
+
+void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *shaderModule) {
+    VkShaderModuleCreateInfo shaderCreateInfo;
+    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderCreateInfo.pNext = nullptr;
+    shaderCreateInfo.flags = 0;
+    shaderCreateInfo.codeSize = shaderCode.size();
+    shaderCreateInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
+
+    VkResult result = vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule);
+    ASSERT_VULKAN(result);
 }
 
 void startVulkan() {
@@ -229,7 +260,7 @@ void startVulkan() {
 
     VkPhysicalDeviceFeatures usedFeatueres{};
 
-    const std::vector<const char*> deviceExtensions ={
+    const std::vector<const char *> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
@@ -286,15 +317,15 @@ void startVulkan() {
     result = vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
     ASSERT_VULKAN(result);
 
-
     vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, nullptr);
     auto *swapchainImages = new VkImage[amountOfImagesInSwapChain];
-    result = vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, swapchainImages);
+    result = vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain,
+                                     swapchainImages);
     ASSERT_VULKAN(result);
 
     // ImageView
     imageViews = new VkImageView[amountOfImagesInSwapChain];
-    for (int i=0; i < amountOfImagesInSwapChain; i++) {
+    for (int i = 0; i < amountOfImagesInSwapChain; i++) {
         VkImageViewCreateInfo imageViewCreateInfo;
         imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         imageViewCreateInfo.pNext = nullptr;
@@ -315,13 +346,103 @@ void startVulkan() {
         ASSERT_VULKAN(result);
     }
 
+    // Load Shaders
+    auto shaderCodeVert = readFile("../shaders/vert.spv");
+    auto shaderCodeFrag = readFile("../shaders/frag.spv");
+    createShaderModule(shaderCodeVert, &shaderModuleVert);
+    createShaderModule(shaderCodeFrag, &shaderModuleFrag);
+
+    VkPipelineShaderStageCreateInfo shaderStageCreateInfoVert;
+    shaderStageCreateInfoVert.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStageCreateInfoVert.pNext = nullptr;
+    shaderStageCreateInfoVert.flags = 0;
+    shaderStageCreateInfoVert.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    shaderStageCreateInfoVert.module = shaderModuleVert;
+    shaderStageCreateInfoVert.pName = "main";
+    shaderStageCreateInfoVert.pSpecializationInfo = nullptr;
+
+    VkPipelineShaderStageCreateInfo shaderStageCreateInfoFrag;
+    shaderStageCreateInfoFrag.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStageCreateInfoFrag.pNext = nullptr;
+    shaderStageCreateInfoFrag.flags = 0;
+    shaderStageCreateInfoFrag.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    shaderStageCreateInfoFrag.module = shaderModuleFrag;
+    shaderStageCreateInfoFrag.pName = "main";
+    shaderStageCreateInfoFrag.pSpecializationInfo = nullptr;
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {shaderStageCreateInfoVert,
+                                                      shaderStageCreateInfoFrag};
+
+    VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo;
+    vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputCreateInfo.pNext = nullptr;
+    vertexInputCreateInfo.flags = 0;
+    vertexInputCreateInfo.vertexBindingDescriptionCount = 0;
+    vertexInputCreateInfo.pVertexBindingDescriptions = nullptr;
+    vertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo;
+    inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssemblyStateCreateInfo.pNext = nullptr;
+    inputAssemblyStateCreateInfo.flags = 0;
+    inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = WIDTH;
+    viewport.height = HEIGHT;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor;
+    scissor.offset = {0, 0};
+    scissor.extent = {WIDTH, HEIGHT};
+
+    VkPipelineViewportStateCreateInfo viewportStateCreateInfo;
+    viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportStateCreateInfo.pNext = nullptr;
+    viewportStateCreateInfo.flags = 0;
+    viewportStateCreateInfo.viewportCount = 1;
+    viewportStateCreateInfo.pViewports = &viewport;
+    viewportStateCreateInfo.scissorCount = 1;
+    viewportStateCreateInfo.pScissors = &scissor;
+
+    VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;
+    rasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizationStateCreateInfo.pNext = nullptr;
+    rasterizationStateCreateInfo.flags = 0;
+    rasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
+    rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+    rasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+    rasterizationStateCreateInfo.depthBiasConstantFactor = 0.0f;
+    rasterizationStateCreateInfo.depthBiasClamp = 0.0f;
+    rasterizationStateCreateInfo.depthBiasSlopeFactor = 0.0f;
+    rasterizationStateCreateInfo.lineWidth = 1.0f; //Thickness of lines
+
+    VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo;
+    multisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleStateCreateInfo.pNext = nullptr;
+    multisampleStateCreateInfo.flags = 0;
+    multisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampleStateCreateInfo.sampleShadingEnable = VK_FALSE; //Disable Multisampling
+    multisampleStateCreateInfo.minSampleShading = 1.0f;
+    multisampleStateCreateInfo.pSampleMask = nullptr;
+    multisampleStateCreateInfo.alphaToCoverageEnable = VK_FALSE;
+    multisampleStateCreateInfo.alphaToOneEnable = VK_FALSE;
+
     delete[] swapchainImages;
     delete[] layers;
     delete[] extensions;
     delete[] physicalDevices; // don't need this if vector<> is used
 }
 
-void endlessLoop() {
+void renderLoop() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
     }
@@ -330,10 +451,12 @@ void endlessLoop() {
 void shutdownVulkan() {
     // Cleanup
     vkDeviceWaitIdle(device);
-    for(int i = 0; i < amountOfImagesInSwapChain; i++) {
+    for (int i = 0; i < amountOfImagesInSwapChain; i++) {
         vkDestroyImageView(device, imageViews[i], nullptr);
     }
     delete[] imageViews;
+    vkDestroyShaderModule(device, shaderModuleFrag, nullptr);
+    vkDestroyShaderModule(device, shaderModuleVert, nullptr);
     vkDestroySwapchainKHR(device, swapchain, nullptr);
     vkDestroyDevice(device, nullptr);
     vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -348,7 +471,7 @@ void shutdownGLFW() {
 int main() {
     startGLFW();
     startVulkan();
-    endlessLoop();
+    renderLoop();
     shutdownVulkan();
     shutdownGLFW();
     std::cout << std::endl;
