@@ -6,6 +6,7 @@
 #define GLFW_INCLUDE_VULKAN
 
 #include <GLFW/glfw3.h>
+#include <limits>
 //#include "vulkan/vulkan.h"
 
 // ErrorHandling. Linux specific.
@@ -16,19 +17,22 @@
 }
 
 // TODO namespaces
+VkQueue queue;
 VkDevice device;
 VkInstance instance;
+VkPipeline pipeline;
 VkSurfaceKHR surface;
+VkRenderPass renderPass;
 VkImageView *imageViews;
 VkSwapchainKHR swapchain;
 VkShaderModule shaderModuleVert;
 VkShaderModule shaderModuleFrag;
 VkPipelineLayout pipelineLayout;
-VkRenderPass renderPass;
-VkPipeline pipeline;
-VkFramebuffer *framebuffer;
+VkFramebuffer *framebuffers;
 VkCommandPool commandPool;
-VkCommandBuffer *commandBuffer;
+VkCommandBuffer *commandBuffers;
+VkSemaphore semaphoreImageAvailable;
+VkSemaphore semaphoreRenderingDone;
 GLFWwindow *window;
 uint32_t amountOfImagesInSwapChain = 0;
 
@@ -141,6 +145,7 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
     delete[] presentModes;
 }
 
+// For reading shader files.
 std::vector<char> readFile(const std::string &filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (file) {
@@ -218,7 +223,7 @@ void startVulkan() {
             "VK_LAYER_LUNARG_standard_validation"
     };
 
-    // Get extensions form glfw to make it platform independent
+    // Get extensions form glfw to make it platform independent.
     uint32_t amountOfGlfwExtensions = 0;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&amountOfGlfwExtensions);
 
@@ -264,7 +269,7 @@ void startVulkan() {
     deviceQueueCreateInfo.queueCount = 1; //TODO Validity check!
     deviceQueueCreateInfo.pQueuePriorities = queuePrios;
 
-    VkPhysicalDeviceFeatures usedFeatueres{};
+    VkPhysicalDeviceFeatures usedFeatures{};
 
     const std::vector<const char *> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -280,14 +285,12 @@ void startVulkan() {
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-    deviceCreateInfo.pEnabledFeatures = &usedFeatueres;
+    deviceCreateInfo.pEnabledFeatures = &usedFeatures;
 
     //TODO choose better device instead of [0]
     result = vkCreateDevice(physicalDevices[0], &deviceCreateInfo, nullptr, &device);
-
     ASSERT_VULKAN(result)
 
-    VkQueue queue;
     vkGetDeviceQueue(device, 0, 0, &queue);
 
     auto surfceSupport = static_cast<VkBool32>(false);
@@ -325,8 +328,7 @@ void startVulkan() {
 
     vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, nullptr);
     auto *swapchainImages = new VkImage[amountOfImagesInSwapChain];
-    result = vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain,
-                                     swapchainImages);
+    result = vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, swapchainImages);
     ASSERT_VULKAN(result);
 
     // ImageView
@@ -352,7 +354,7 @@ void startVulkan() {
         ASSERT_VULKAN(result);
     }
 
-    // Load Shaders
+    // Load Shaders.
     auto shaderCodeVert = readFile("../shaders/vert.spv");
     auto shaderCodeFrag = readFile("../shaders/frag.spv");
     createShaderModule(shaderCodeVert, &shaderModuleVert);
@@ -490,9 +492,9 @@ void startVulkan() {
     attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    VkAttachmentReference attachementReference;
-    attachementReference.attachment = 0;
-    attachementReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    VkAttachmentReference attachmentReference;
+    attachmentReference.attachment = 0;
+    attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpassDescription;
     subpassDescription.flags = 0;
@@ -500,11 +502,22 @@ void startVulkan() {
     subpassDescription.inputAttachmentCount = 0;
     subpassDescription.pInputAttachments = nullptr;
     subpassDescription.colorAttachmentCount = 1;
-    subpassDescription.pColorAttachments = &attachementReference;
+    subpassDescription.pColorAttachments = &attachmentReference;
     subpassDescription.pResolveAttachments = nullptr;
     subpassDescription.pDepthStencilAttachment = nullptr;
     subpassDescription.preserveAttachmentCount = 0;
     subpassDescription.pPreserveAttachments = nullptr;
+
+    VkSubpassDependency subpassDependency;
+    subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    subpassDependency.dstSubpass = 0;
+    subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    subpassDependency.srcAccessMask = 0;
+    subpassDependency.dstAccessMask =
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    subpassDependency.dependencyFlags = 0;
+
 
     VkRenderPassCreateInfo renderPassCreateInfo;
     renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -515,7 +528,7 @@ void startVulkan() {
     renderPassCreateInfo.subpassCount = 1;
     renderPassCreateInfo.pSubpasses = &subpassDescription;
     renderPassCreateInfo.dependencyCount = 0;
-    renderPassCreateInfo.pDependencies = nullptr;
+    renderPassCreateInfo.pDependencies = &subpassDependency;
 
     result = vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass);
     ASSERT_VULKAN(result);
@@ -545,7 +558,7 @@ void startVulkan() {
                                        nullptr, &pipeline);
     ASSERT_VULKAN(result);
 
-    framebuffer = new VkFramebuffer[amountOfImagesInSwapChain];
+    framebuffers = new VkFramebuffer[amountOfImagesInSwapChain];
     for (size_t i = 0; i < amountOfImagesInSwapChain; i++) {
         VkFramebufferCreateInfo framebufferCreateInfo;
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -558,7 +571,7 @@ void startVulkan() {
         framebufferCreateInfo.height = HEIGHT;
         framebufferCreateInfo.layers = 1;
 
-        result = vkCreateFramebuffer(device, &framebufferCreateInfo, nullptr, &(framebuffer[i]));
+        result = vkCreateFramebuffer(device, &framebufferCreateInfo, nullptr, &(framebuffers[i]));
         ASSERT_VULKAN(result);
     }
 
@@ -578,8 +591,8 @@ void startVulkan() {
     commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     commandBufferAllocateInfo.commandBufferCount = amountOfImagesInSwapChain;
 
-    commandBuffer = new VkCommandBuffer[amountOfImagesInSwapChain];
-    result = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffer);
+    commandBuffers = new VkCommandBuffer[amountOfImagesInSwapChain];
+    result = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffers);
     ASSERT_VULKAN(result);
 
     VkCommandBufferBeginInfo commandBufferBeginInfo;
@@ -588,12 +601,42 @@ void startVulkan() {
     commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     commandBufferBeginInfo.pInheritanceInfo = nullptr;
 
+    for (size_t i = 0; i < amountOfImagesInSwapChain; i++) {
+        result = vkBeginCommandBuffer(commandBuffers[i], &commandBufferBeginInfo);
+        ASSERT_VULKAN(result);
 
+        VkRenderPassBeginInfo renderPassBeginInfo;
+        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassBeginInfo.pNext = nullptr;
+        renderPassBeginInfo.renderPass = renderPass;
+        renderPassBeginInfo.framebuffer = framebuffers[i];
+        renderPassBeginInfo.renderArea.offset = {0, 0};
+        renderPassBeginInfo.renderArea.extent = {WIDTH, HEIGHT};
+        VkClearValue clearValue = {0.0f, 0.0f, 0.0f, 1.0f};
+        renderPassBeginInfo.clearValueCount = 1;
+        renderPassBeginInfo.pClearValues = &clearValue;
 
+        vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+        vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
 
+        vkCmdEndRenderPass(commandBuffers[i]);
 
+        result = vkEndCommandBuffer(commandBuffers[i]);
+        ASSERT_VULKAN(result);
+    }
+
+    VkSemaphoreCreateInfo semaphoreCreateInfo;
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    semaphoreCreateInfo.pNext = nullptr;
+    semaphoreCreateInfo.flags = 0;
+
+    result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphoreImageAvailable);
+    ASSERT_VULKAN(result);
+    result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphoreRenderingDone);
+    ASSERT_VULKAN(result);
 
     // Cleanup
     delete[] swapchainImages;
@@ -602,22 +645,59 @@ void startVulkan() {
     delete[] physicalDevices; // don't need this if vector<> is used
 }
 
+void drawFrame() {
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(device, swapchain, std::numeric_limits<uint64_t>::max(),
+                          semaphoreImageAvailable, VK_NULL_HANDLE, &imageIndex);
+
+    VkSubmitInfo submitInfo;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.pNext = nullptr;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &semaphoreImageAvailable;
+    VkPipelineStageFlags waitStageMask[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.pWaitDstStageMask = waitStageMask;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &(commandBuffers[imageIndex]);
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &semaphoreRenderingDone;
+
+    VkResult result = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    ASSERT_VULKAN(result);
+
+    VkPresentInfoKHR presentInfoKHR;
+    presentInfoKHR.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfoKHR.pNext = nullptr;
+    presentInfoKHR.waitSemaphoreCount = 1;
+    presentInfoKHR.pWaitSemaphores = &semaphoreRenderingDone;
+    presentInfoKHR.swapchainCount = 1;
+    presentInfoKHR.pSwapchains = &swapchain;
+    presentInfoKHR.pImageIndices = &imageIndex;
+    presentInfoKHR.pResults = nullptr;
+
+    result = vkQueuePresentKHR(queue, &presentInfoKHR);
+    ASSERT_VULKAN(result);
+}
+
 void renderLoop() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        drawFrame();
     }
 }
 
 void shutdownVulkan() {
     // Cleanup
     vkDeviceWaitIdle(device);
-    vkFreeCommandBuffers(device, commandPool, amountOfImagesInSwapChain, commandBuffer);
-    delete[] commandBuffer;
+    vkDestroySemaphore(device, semaphoreImageAvailable, nullptr);
+    vkDestroySemaphore(device, semaphoreRenderingDone, nullptr);
+    vkFreeCommandBuffers(device, commandPool, amountOfImagesInSwapChain, commandBuffers);
+    delete[] commandBuffers;
     vkDestroyCommandPool(device, commandPool, nullptr);
     for (size_t i = 0; i < amountOfImagesInSwapChain; i++) {
-        vkDestroyFramebuffer(device, framebuffer[i], nullptr);
+        vkDestroyFramebuffer(device, framebuffers[i], nullptr);
     }
-    delete[] framebuffer;
+    delete[] framebuffers;
     vkDestroyPipeline(device, pipeline, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
     for (int i = 0; i < amountOfImagesInSwapChain; i++) {
