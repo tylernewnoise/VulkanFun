@@ -582,6 +582,19 @@ void startVulkan() {
     result = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffer);
     ASSERT_VULKAN(result);
 
+    VkCommandBufferBeginInfo commandBufferBeginInfo;
+    commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    commandBufferBeginInfo.pNext = nullptr;
+    commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    commandBufferBeginInfo.pInheritanceInfo = nullptr;
+
+
+
+
+
+
+
+
     // Cleanup
     delete[] swapchainImages;
     delete[] layers;
