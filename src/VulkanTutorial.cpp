@@ -197,7 +197,7 @@ void startGLFW() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Window is not resizable
-    window = glfwCreateWindow(640, 480, "Vulkan Tutorial" , nullptr, nullptr);
+    window = glfwCreateWindow(640, 480, "Vulkan Tutorial", nullptr, nullptr);
 }
 
 void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *shaderModule) {
@@ -213,7 +213,7 @@ void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *sha
     }
 }
 
-void startVulkan() {
+void createInstance() {
     VkApplicationInfo appInfo;
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pNext = nullptr;
@@ -223,12 +223,11 @@ void startVulkan() {
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
-
     const std::vector<const char *> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"
     };
 
-    // Get extensions form glfw to make it platform independent.
+    // Get extensions from glfw to make it platform independent.
     uint32_t amountOfGlfwExtensions = 0;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&amountOfGlfwExtensions);
 
@@ -245,18 +244,35 @@ void startVulkan() {
     if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create instance!");
     }
+}
 
+void createGlfwWindowSurface(){
     if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface!");
     }
+}
 
+void loadShaders(){
+
+
+}
+
+void createQueue(){
+    vkGetDeviceQueue(device, 0, 0, &queue);
+}
+
+void startVulkan() {
+    createInstance();
+    createGlfwWindowSurface();
+
+    // ########################### TODO create logical Device outside this ######################################
     uint32_t amountOfPhysicalDevices = 0;
     vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, nullptr);
     if (amountOfPhysicalDevices == 0) {
         throw std::runtime_error("Failed to find GPUs with Vulkan support!");
     }
 
-    // TODO
+    // TODO make this global without fucking up the validation layer
     auto *physicalDevices = new VkPhysicalDevice[amountOfPhysicalDevices];
     // Alternative with vector
     // std::vector<VkPhysicalDevice> physicalDevices;
@@ -264,7 +280,7 @@ void startVulkan() {
     // result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices.data());
     VkResult result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices);
     ASSERT_VULKAN(result);
-    // TODO
+    // TODO make this global without fucking up the validation layer
 
     // Loop if there are more than one graphic card.
     for (int i = 0; i < amountOfPhysicalDevices; i++) {
@@ -302,8 +318,8 @@ void startVulkan() {
     if (vkCreateDevice(physicalDevices[0], &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create logical device!");
     }
-
-    vkGetDeviceQueue(device, 0, 0, &queue);
+    // ########################### TODO create logical Device outside this ######################################
+    createQueue();
 
     auto surfaceSupport = static_cast<VkBool32>(false);
     if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevices[0], 0, surface, &surfaceSupport) != VK_SUCCESS) {
@@ -764,8 +780,7 @@ int main(int argc, char *argv[]) {
                 return 0;
             }
         }
-    }
-    else {
+    } else {
         std::cout << std::endl;
         startGLFW();
         startVulkan();
