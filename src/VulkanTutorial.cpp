@@ -1,13 +1,9 @@
-// EntryPoint for our Vulkan project.
-#include <iostream>
-#include <vector>
-#include <fstream>
-
 #define GLFW_INCLUDE_VULKAN
 
 #include <GLFW/glfw3.h>
-#include <limits>
-//#include "vulkan/vulkan.h"
+#include <iostream>
+#include <vector>
+#include <fstream>
 
 // ErrorHandling. Linux specific.
 #define ASSERT_VULKAN(val)\
@@ -19,6 +15,7 @@
 // TODO namespaces
 VkQueue queue;
 VkDevice device;
+// VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 VkInstance instance;
 VkPipeline pipeline;
 VkSurfaceKHR surface;
@@ -145,6 +142,41 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
     delete[] presentModes;
 }
 
+void printLayersAndExtensions() {
+    //Layers
+    uint32_t amountOfLayers = 0;
+    vkEnumerateInstanceLayerProperties(&amountOfLayers, nullptr);
+    auto *layers = new VkLayerProperties[amountOfLayers];
+    vkEnumerateInstanceLayerProperties(&amountOfLayers, layers);
+
+    std::cout << "Amount of Instance Layers: " << amountOfLayers << std::endl;
+    for (int i = 0; i < amountOfLayers; i++) {
+        std::cout << std::endl;
+        std::cout << "Name:         " << layers[i].layerName << std::endl;
+        std::cout << "SpecVersion:  " << layers[i].specVersion << std::endl;
+        std::cout << "Impl Version: " << layers[i].implementationVersion << std::endl;
+        std::cout << "Description:  " << layers[i].description << std::endl;
+    }
+    std::cout << std::endl;
+
+    // Extensions
+    uint32_t amountOfExtensions = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, nullptr);
+    auto *extensions = new VkExtensionProperties[amountOfExtensions];
+    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, extensions);
+
+    std::cout << "Amount of Extensions: " << amountOfExtensions << std::endl;
+    for (int i = 0; i < amountOfExtensions; i++) {
+        std::cout << std::endl;
+        std::cout << "Name:         " << extensions[i].extensionName << std::endl;
+        std::cout << "SpecVersion:  " << extensions[i].specVersion << std::endl;
+    }
+    std::cout << std::endl;
+
+    delete[] layers;
+    delete[] extensions;
+}
+
 // For reading shader files.
 std::vector<char> readFile(const std::string &filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
@@ -176,7 +208,9 @@ void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *sha
     shaderCreateInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
 
     VkResult result = vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule);
-    ASSERT_VULKAN(result);
+    if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create shader module!");
+    }
 }
 
 void startVulkan() {
@@ -189,35 +223,6 @@ void startVulkan() {
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
-    // Layers and Extensions
-    uint32_t amountOfLayers = 0;
-    vkEnumerateInstanceLayerProperties(&amountOfLayers, nullptr);
-    auto *layers = new VkLayerProperties[amountOfLayers];
-    vkEnumerateInstanceLayerProperties(&amountOfLayers, layers);
-
-    std::cout << "Amount of Instance Layers: " << amountOfLayers << std::endl;
-    for (int i = 0; i < amountOfLayers; i++) {
-        std::cout << std::endl;
-        std::cout << "Name:         " << layers[i].layerName << std::endl;
-        std::cout << "SpecVersion:  " << layers[i].specVersion << std::endl;
-        std::cout << "Impl Version: " << layers[i].implementationVersion << std::endl;
-        std::cout << "Description:  " << layers[i].description << std::endl;
-    }
-    std::cout << std::endl;
-
-    // Extensions
-    uint32_t amountOfExtensions = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, nullptr);
-    auto *extensions = new VkExtensionProperties[amountOfExtensions];
-    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, extensions);
-
-    std::cout << "Amount of Extensions: " << amountOfExtensions << std::endl;
-    for (int i = 0; i < amountOfExtensions; i++) {
-        std::cout << std::endl;
-        std::cout << "Name:         " << extensions[i].extensionName << std::endl;
-        std::cout << "SpecVersion:  " << extensions[i].specVersion << std::endl;
-    }
-    std::cout << std::endl;
 
     const std::vector<const char *> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"
@@ -237,23 +242,29 @@ void startVulkan() {
     instanceInfo.enabledExtensionCount = amountOfGlfwExtensions;
     instanceInfo.ppEnabledExtensionNames = glfwExtensions;
 
-    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &instance);
-    ASSERT_VULKAN(result);
+    if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create instance!");
+    }
 
-    result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
-    ASSERT_VULKAN(result);
+    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create window surface!");
+    }
 
     uint32_t amountOfPhysicalDevices = 0;
-    result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, nullptr);
-    ASSERT_VULKAN(result);
+    vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, nullptr);
+    if (amountOfPhysicalDevices == 0) {
+        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+    }
 
+    // TODO
     auto *physicalDevices = new VkPhysicalDevice[amountOfPhysicalDevices];
     // Alternative with vector
     // std::vector<VkPhysicalDevice> physicalDevices;
     // physicalDevices.reserve(amountOfPhysicalDevices);
     // result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices.data());
-    result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices);
+    VkResult result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices);
     ASSERT_VULKAN(result);
+    // TODO
 
     // Loop if there are more than one graphic card.
     for (int i = 0; i < amountOfPhysicalDevices; i++) {
@@ -288,16 +299,18 @@ void startVulkan() {
     deviceCreateInfo.pEnabledFeatures = &usedFeatures;
 
     //TODO choose better device instead of [0]
-    result = vkCreateDevice(physicalDevices[0], &deviceCreateInfo, nullptr, &device);
-    ASSERT_VULKAN(result)
+    if (vkCreateDevice(physicalDevices[0], &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create logical device!");
+    }
 
     vkGetDeviceQueue(device, 0, 0, &queue);
 
-    auto surfceSupport = static_cast<VkBool32>(false);
-    result = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevices[0], 0, surface, &surfceSupport);
-    ASSERT_VULKAN(result);
+    auto surfaceSupport = static_cast<VkBool32>(false);
+    if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevices[0], 0, surface, &surfaceSupport) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to get surface!");
+    }
 
-    if (!surfceSupport) {
+    if (!surfaceSupport) {
         std::cerr << "Surface not supported!" << std::endl;
         __builtin_trap();
     }
@@ -323,8 +336,9 @@ void startVulkan() {
     swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE; // TODO remember for image resizing
 
     // Swapchain
-    result = vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
-    ASSERT_VULKAN(result);
+    if (vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create swap chain!");
+    }
 
     vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, nullptr);
     auto *swapchainImages = new VkImage[amountOfImagesInSwapChain];
@@ -350,8 +364,9 @@ void startVulkan() {
         imageViewCreateInfo.subresourceRange.levelCount = 1;
         imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
         imageViewCreateInfo.subresourceRange.layerCount = 1;
-        result = vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageViews[i]);
-        ASSERT_VULKAN(result);
+        if (vkCreateImageView(device, &imageViewCreateInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create image views!");
+        }
     }
 
     // Load Shaders.
@@ -478,8 +493,9 @@ void startVulkan() {
     pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
     pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
-    result = vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
-    ASSERT_VULKAN(result);
+    if (vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create pipeline layout!");
+    }
 
     VkAttachmentDescription attachmentDescription;
     attachmentDescription.flags = 0;
@@ -530,8 +546,9 @@ void startVulkan() {
     renderPassCreateInfo.dependencyCount = 0;
     renderPassCreateInfo.pDependencies = &subpassDependency;
 
-    result = vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass);
-    ASSERT_VULKAN(result);
+    if (vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create render pass!");
+    }
 
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo;
     graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -554,9 +571,10 @@ void startVulkan() {
     graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
     graphicsPipelineCreateInfo.basePipelineIndex = -1;
 
-    result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo,
-                                       nullptr, &pipeline);
-    ASSERT_VULKAN(result);
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("Failed to create graphics pipeline!");
+    }
 
     framebuffers = new VkFramebuffer[amountOfImagesInSwapChain];
     for (size_t i = 0; i < amountOfImagesInSwapChain; i++) {
@@ -571,8 +589,9 @@ void startVulkan() {
         framebufferCreateInfo.height = HEIGHT;
         framebufferCreateInfo.layers = 1;
 
-        result = vkCreateFramebuffer(device, &framebufferCreateInfo, nullptr, &(framebuffers[i]));
-        ASSERT_VULKAN(result);
+        if (vkCreateFramebuffer(device, &framebufferCreateInfo, nullptr, &(framebuffers[i])) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create framebuffer!");
+        }
     }
 
     VkCommandPoolCreateInfo commandPoolCreateInfo;
@@ -581,8 +600,9 @@ void startVulkan() {
     commandPoolCreateInfo.flags = 0;
     commandPoolCreateInfo.queueFamilyIndex = 0; // TODO check if valid, get correct queue with VK_QUEUE_GRAPHICS_BIT
 
-    result = vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool);
-    ASSERT_VULKAN(result);
+    if (vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command pool!");
+    }
 
     VkCommandBufferAllocateInfo commandBufferAllocateInfo;
     commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -592,8 +612,9 @@ void startVulkan() {
     commandBufferAllocateInfo.commandBufferCount = amountOfImagesInSwapChain;
 
     commandBuffers = new VkCommandBuffer[amountOfImagesInSwapChain];
-    result = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffers);
-    ASSERT_VULKAN(result);
+    if (vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffers) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate command buffers!");
+    }
 
     VkCommandBufferBeginInfo commandBufferBeginInfo;
     commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -602,8 +623,9 @@ void startVulkan() {
     commandBufferBeginInfo.pInheritanceInfo = nullptr;
 
     for (size_t i = 0; i < amountOfImagesInSwapChain; i++) {
-        result = vkBeginCommandBuffer(commandBuffers[i], &commandBufferBeginInfo);
-        ASSERT_VULKAN(result);
+        if (vkBeginCommandBuffer(commandBuffers[i], &commandBufferBeginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to begin recording command buffer!");
+        }
 
         VkRenderPassBeginInfo renderPassBeginInfo;
         renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -624,8 +646,9 @@ void startVulkan() {
 
         vkCmdEndRenderPass(commandBuffers[i]);
 
-        result = vkEndCommandBuffer(commandBuffers[i]);
-        ASSERT_VULKAN(result);
+        if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to record command buffer!");
+        }
     }
 
     VkSemaphoreCreateInfo semaphoreCreateInfo;
@@ -633,15 +656,13 @@ void startVulkan() {
     semaphoreCreateInfo.pNext = nullptr;
     semaphoreCreateInfo.flags = 0;
 
-    result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphoreImageAvailable);
-    ASSERT_VULKAN(result);
-    result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphoreRenderingDone);
-    ASSERT_VULKAN(result);
+    if (vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphoreImageAvailable) != VK_SUCCESS ||
+        vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphoreRenderingDone) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create synchronization objects for a frame!");
+    }
 
     // Cleanup
     delete[] swapchainImages;
-    delete[] layers;
-    delete[] extensions;
     delete[] physicalDevices; // don't need this if vector<> is used
 }
 
@@ -662,8 +683,9 @@ void drawFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &semaphoreRenderingDone;
 
-    VkResult result = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    ASSERT_VULKAN(result);
+    if(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE)) {
+        throw std::runtime_error("Failed to submit draw command buffer!");
+    }
 
     VkPresentInfoKHR presentInfoKHR;
     presentInfoKHR.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -675,7 +697,7 @@ void drawFrame() {
     presentInfoKHR.pImageIndices = &imageIndex;
     presentInfoKHR.pResults = nullptr;
 
-    result = vkQueuePresentKHR(queue, &presentInfoKHR);
+    VkResult result = vkQueuePresentKHR(queue, &presentInfoKHR);
     ASSERT_VULKAN(result);
 }
 
@@ -716,6 +738,7 @@ void shutdownVulkan() {
 void shutdownGLFW() {
     // Cleanup
     glfwDestroyWindow(window);
+    glfwTerminate();
 }
 
 int main() {
