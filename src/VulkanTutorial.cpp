@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <cstring>
 
 // ErrorHandling. Linux specific.
 #define ASSERT_VULKAN(val)\
@@ -196,7 +197,7 @@ void startGLFW() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Window is not resizable
-    window = glfwCreateWindow(640, 480, "Vulkan Tut", nullptr, nullptr);
+    window = glfwCreateWindow(640, 480, "Vulkan Tutorial" , nullptr, nullptr);
 }
 
 void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *shaderModule) {
@@ -207,7 +208,6 @@ void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *sha
     shaderCreateInfo.codeSize = shaderCode.size();
     shaderCreateInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
 
-    VkResult result = vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule);
     if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create shader module!");
     }
@@ -534,7 +534,6 @@ void startVulkan() {
             VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     subpassDependency.dependencyFlags = 0;
 
-
     VkRenderPassCreateInfo renderPassCreateInfo;
     renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassCreateInfo.pNext = nullptr;
@@ -683,7 +682,7 @@ void drawFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &semaphoreRenderingDone;
 
-    if(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE)) {
+    if (vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE)) {
         throw std::runtime_error("Failed to submit draw command buffer!");
     }
 
@@ -741,13 +740,40 @@ void shutdownGLFW() {
     glfwTerminate();
 }
 
-int main() {
-    startGLFW();
-    startVulkan();
-    renderLoop();
-    shutdownVulkan();
-    shutdownGLFW();
-    std::cout << std::endl;
-    std::cout << "GoodBye" << std::endl;
-    return 0;
+int main(int argc, char *argv[]) {
+    // TODO make this better :P
+    printf("This is a VulkanTutorial, Name: %s", argv[0]);
+    if (argc >= 2) {
+        for (int i = 0; i < argc; i++) {
+            if (strcmp(argv[i], "-h") == 0) {
+                std::cout << "Usage: VulkanTut [-h] [-i] [-l]" << std::endl;
+                std::cout << "-h (help): print this." << std::endl;
+                std::cout << "-i (information): print infos about graphics card." << std::endl;
+                std::cout << "-l (layers): print available validation layers." << std::endl;
+                std::cout << "If no parameter is submitted the program will execute." << std::endl;
+                return 0;
+            }
+            if (strcmp(argv[i], "-i") == 0) {
+                startVulkan();
+                shutdownVulkan();
+                printf("\nargv[%d]: %s", i, argv[i]);
+                return 0;
+            }
+            if (strcmp(argv[i], "-l") == 0) {
+                printLayersAndExtensions();
+                return 0;
+            }
+        }
+    }
+    else {
+        std::cout << std::endl;
+        startGLFW();
+        startVulkan();
+        renderLoop();
+        shutdownVulkan();
+        shutdownGLFW();
+        std::cout << std::endl;
+        std::cout << "GoodBye" << std::endl;
+        return 0;
+    }
 }
