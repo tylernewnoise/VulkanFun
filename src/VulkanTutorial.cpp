@@ -16,13 +16,13 @@
 // TODO namespaces
 VkQueue queue;
 VkDevice device;
-// VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+std::vector<VkPhysicalDevice> physicalDevices;
 VkInstance instance;
 VkPipeline pipeline;
 VkSurfaceKHR surface;
 VkRenderPass renderPass;
 VkImageView *imageViews;
-VkSwapchainKHR swapchain;
+VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 VkShaderModule shaderModuleVert;
 VkShaderModule shaderModuleFrag;
 VkPipelineLayout pipelineLayout;
@@ -34,12 +34,102 @@ VkSemaphore semaphoreRenderingDone;
 GLFWwindow *window;
 uint32_t amountOfImagesInSwapChain = 0;
 
-const uint32_t WIDTH = 640;
-const uint32_t HEIGHT = 480;
+uint32_t WIDTH = 800;
+uint32_t HEIGHT = 600;
 
 
-// Print useful information about graphic card.
-void printStatsOfDevice(VkPhysicalDevice &device) {
+void printLayers() {
+    //Layers
+    uint32_t amountOfLayers = 0;
+    vkEnumerateInstanceLayerProperties(&amountOfLayers, nullptr);
+    auto *layers = new VkLayerProperties[amountOfLayers];
+    vkEnumerateInstanceLayerProperties(&amountOfLayers, layers);
+
+    std::cout << "Amount of Instance Layers: " << amountOfLayers << std::endl;
+    for (int i = 0; i < amountOfLayers; i++) {
+        std::cout << std::endl;
+        std::cout << "Name:         " << layers[i].layerName << std::endl;
+        std::cout << "SpecVersion:  " << layers[i].specVersion << std::endl;
+        std::cout << "Impl Version: " << layers[i].implementationVersion << std::endl;
+        std::cout << "Description:  " << layers[i].description << std::endl;
+    }
+    std::cout << std::endl;
+    delete[] layers;
+}
+
+void printExtensions() {
+    // Extensions
+    uint32_t amountOfExtensions = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, nullptr);
+    auto *extensions = new VkExtensionProperties[amountOfExtensions];
+    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, extensions);
+
+    std::cout << "Amount of Extensions: " << amountOfExtensions << std::endl;
+    for (int i = 0; i < amountOfExtensions; i++) {
+        std::cout << std::endl;
+        std::cout << "Name:         " << extensions[i].extensionName << std::endl;
+        std::cout << "SpecVersion:  " << extensions[i].specVersion << std::endl;
+    }
+    std::cout << std::endl;
+
+    delete[] extensions;
+}
+
+void createInstance() {
+    VkApplicationInfo appInfo;
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pNext = nullptr;
+    appInfo.pApplicationName = "Vulkan Tutorial";
+    appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
+    appInfo.pEngineName = "VulkanTutorialEngine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    const std::vector<const char *> validationLayers = {
+            "VK_LAYER_LUNARG_standard_validation"
+    };
+
+    // Get extensions from glfw to make it platform independent.
+    uint32_t amountOfGlfwExtensions = 0;
+    auto glfwExtensions = glfwGetRequiredInstanceExtensions(&amountOfGlfwExtensions);
+
+    VkInstanceCreateInfo instanceInfo;
+    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceInfo.pNext = nullptr;
+    instanceInfo.flags = 0;
+    instanceInfo.pApplicationInfo = &appInfo;
+    instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    instanceInfo.ppEnabledLayerNames = validationLayers.data();
+    instanceInfo.enabledExtensionCount = amountOfGlfwExtensions;
+    instanceInfo.ppEnabledExtensionNames = glfwExtensions;
+
+    if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create instance!");
+    }
+}
+
+std::vector<VkPhysicalDevice> getAllPhysicalDevices() {
+    uint32_t amountOfPhysicalDevices = 0;
+    vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, nullptr);
+    if (amountOfPhysicalDevices == 0) {
+        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+    }
+
+    std::vector<VkPhysicalDevice> physicalDevices;
+    physicalDevices.resize(amountOfPhysicalDevices);
+    vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices.data());
+
+    return physicalDevices;
+}
+
+void createGlfwWindowSurface() {
+    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create window surface!");
+    }
+}
+
+// Set up device and print useful information about graphic card.
+void setUpDevice(VkPhysicalDevice &device) {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(device, &properties);
 
@@ -114,6 +204,10 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
               << std::endl;
     std::cout << std::endl;
 
+    // fix for my tiled window manager to not start with 800x600
+    WIDTH = surfaceCapabilities.maxImageExtent.width;
+    HEIGHT = surfaceCapabilities.maxImageExtent.height;
+
     // SurfaceFormatOutput (for colors etc...)
     uint32_t amountOfFormats = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &amountOfFormats, nullptr);
@@ -143,150 +237,13 @@ void printStatsOfDevice(VkPhysicalDevice &device) {
     delete[] presentModes;
 }
 
-void printLayersAndExtensions() {
-    //Layers
-    uint32_t amountOfLayers = 0;
-    vkEnumerateInstanceLayerProperties(&amountOfLayers, nullptr);
-    auto *layers = new VkLayerProperties[amountOfLayers];
-    vkEnumerateInstanceLayerProperties(&amountOfLayers, layers);
-
-    std::cout << "Amount of Instance Layers: " << amountOfLayers << std::endl;
-    for (int i = 0; i < amountOfLayers; i++) {
-        std::cout << std::endl;
-        std::cout << "Name:         " << layers[i].layerName << std::endl;
-        std::cout << "SpecVersion:  " << layers[i].specVersion << std::endl;
-        std::cout << "Impl Version: " << layers[i].implementationVersion << std::endl;
-        std::cout << "Description:  " << layers[i].description << std::endl;
-    }
-    std::cout << std::endl;
-
-    // Extensions
-    uint32_t amountOfExtensions = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, nullptr);
-    auto *extensions = new VkExtensionProperties[amountOfExtensions];
-    vkEnumerateInstanceExtensionProperties(nullptr, &amountOfExtensions, extensions);
-
-    std::cout << "Amount of Extensions: " << amountOfExtensions << std::endl;
-    for (int i = 0; i < amountOfExtensions; i++) {
-        std::cout << std::endl;
-        std::cout << "Name:         " << extensions[i].extensionName << std::endl;
-        std::cout << "SpecVersion:  " << extensions[i].specVersion << std::endl;
-    }
-    std::cout << std::endl;
-
-    delete[] layers;
-    delete[] extensions;
-}
-
-// For reading shader files.
-std::vector<char> readFile(const std::string &filename) {
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (file) {
-        size_t fileSize = static_cast<size_t>(file.tellg());
-        std::vector<char> fileBuffer(fileSize);
-        file.seekg(0);
-        file.read(fileBuffer.data(), fileSize);
-        file.close();
-        return fileBuffer;
-    } else {
-        throw std::runtime_error("Failed to open file!");
+void setupAllPhysicalDevices() {
+    for (auto &physicalDevice : physicalDevices) {
+        setUpDevice(physicalDevice);
     }
 }
 
-void startGLFW() {
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Window is not resizable
-    window = glfwCreateWindow(640, 480, "Vulkan Tutorial", nullptr, nullptr);
-}
-
-void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *shaderModule) {
-    VkShaderModuleCreateInfo shaderCreateInfo;
-    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderCreateInfo.pNext = nullptr;
-    shaderCreateInfo.flags = 0;
-    shaderCreateInfo.codeSize = shaderCode.size();
-    shaderCreateInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
-
-    if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create shader module!");
-    }
-}
-
-void createInstance() {
-    VkApplicationInfo appInfo;
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pNext = nullptr;
-    appInfo.pApplicationName = "Vulkan Tutorial";
-    appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-    appInfo.pEngineName = "VulkanTutorialEngine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
-
-    const std::vector<const char *> validationLayers = {
-            "VK_LAYER_LUNARG_standard_validation"
-    };
-
-    // Get extensions from glfw to make it platform independent.
-    uint32_t amountOfGlfwExtensions = 0;
-    auto glfwExtensions = glfwGetRequiredInstanceExtensions(&amountOfGlfwExtensions);
-
-    VkInstanceCreateInfo instanceInfo;
-    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceInfo.pNext = nullptr;
-    instanceInfo.flags = 0;
-    instanceInfo.pApplicationInfo = &appInfo;
-    instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    instanceInfo.ppEnabledLayerNames = validationLayers.data();
-    instanceInfo.enabledExtensionCount = amountOfGlfwExtensions;
-    instanceInfo.ppEnabledExtensionNames = glfwExtensions;
-
-    if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create instance!");
-    }
-}
-
-void createGlfwWindowSurface(){
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create window surface!");
-    }
-}
-
-void loadShaders(){
-
-
-}
-
-void createQueue(){
-    vkGetDeviceQueue(device, 0, 0, &queue);
-}
-
-void startVulkan() {
-    createInstance();
-    createGlfwWindowSurface();
-
-    // ########################### TODO create logical Device outside this ######################################
-    uint32_t amountOfPhysicalDevices = 0;
-    vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, nullptr);
-    if (amountOfPhysicalDevices == 0) {
-        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
-    }
-
-    // TODO make this global without fucking up the validation layer
-    auto *physicalDevices = new VkPhysicalDevice[amountOfPhysicalDevices];
-    // Alternative with vector
-    // std::vector<VkPhysicalDevice> physicalDevices;
-    // physicalDevices.reserve(amountOfPhysicalDevices);
-    // result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices.data());
-    VkResult result = vkEnumeratePhysicalDevices(instance, &amountOfPhysicalDevices, physicalDevices);
-    ASSERT_VULKAN(result);
-    // TODO make this global without fucking up the validation layer
-
-    // Loop if there are more than one graphic card.
-    for (int i = 0; i < amountOfPhysicalDevices; i++) {
-        printStatsOfDevice(physicalDevices[i]);
-    }
-
+void createLogicalDevice() {
     float queuePrios[] = {1.0f, 1.0f, 1.0f, 1.0f};
     VkDeviceQueueCreateInfo deviceQueueCreateInfo;
     deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -318,9 +275,13 @@ void startVulkan() {
     if (vkCreateDevice(physicalDevices[0], &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create logical device!");
     }
-    // ########################### TODO create logical Device outside this ######################################
-    createQueue();
+}
 
+void initQueue() {
+    vkGetDeviceQueue(device, 0, 0, &queue);
+}
+
+void checkSurfaceSupport() {
     auto surfaceSupport = static_cast<VkBool32>(false);
     if (vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevices[0], 0, surface, &surfaceSupport) != VK_SUCCESS) {
         throw std::runtime_error("Failed to get surface!");
@@ -330,7 +291,9 @@ void startVulkan() {
         std::cerr << "Surface not supported!" << std::endl;
         __builtin_trap();
     }
+}
 
+void createSwapchain() {
     VkSwapchainCreateInfoKHR swapchainCreateInfo;
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainCreateInfo.pNext = nullptr;
@@ -349,19 +312,19 @@ void startVulkan() {
     swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; // TODO check for VK_PRESENT_MODE_MAILBOX_KHR
     swapchainCreateInfo.clipped = VK_TRUE;
-    swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE; // TODO remember for image resizing
+    swapchainCreateInfo.oldSwapchain = swapchain; // TODO remember for image resizing
 
-    // Swapchain
     if (vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create swap chain!");
     }
+}
 
+void createImageviews() {
     vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, nullptr);
     auto *swapchainImages = new VkImage[amountOfImagesInSwapChain];
-    result = vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, swapchainImages);
+    VkResult result = vkGetSwapchainImagesKHR(device, swapchain, &amountOfImagesInSwapChain, swapchainImages);
     ASSERT_VULKAN(result);
 
-    // ImageView
     imageViews = new VkImageView[amountOfImagesInSwapChain];
     for (int i = 0; i < amountOfImagesInSwapChain; i++) {
         VkImageViewCreateInfo imageViewCreateInfo;
@@ -384,7 +347,92 @@ void startVulkan() {
             throw std::runtime_error("Failed to create image views!");
         }
     }
+    delete[] swapchainImages;
+}
 
+void createRenderpass() {
+    VkAttachmentDescription attachmentDescription;
+    attachmentDescription.flags = 0;
+    attachmentDescription.format = VK_FORMAT_B8G8R8A8_UNORM;
+    attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT; // important for multisampling
+    attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // no stencil buffers
+    attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference attachmentReference;
+    attachmentReference.attachment = 0;
+    attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpassDescription;
+    subpassDescription.flags = 0;
+    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDescription.inputAttachmentCount = 0;
+    subpassDescription.pInputAttachments = nullptr;
+    subpassDescription.colorAttachmentCount = 1;
+    subpassDescription.pColorAttachments = &attachmentReference;
+    subpassDescription.pResolveAttachments = nullptr;
+    subpassDescription.pDepthStencilAttachment = nullptr;
+    subpassDescription.preserveAttachmentCount = 0;
+    subpassDescription.pPreserveAttachments = nullptr;
+
+    VkSubpassDependency subpassDependency;
+    subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    subpassDependency.dstSubpass = 0;
+    subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    subpassDependency.srcAccessMask = 0;
+    subpassDependency.dstAccessMask =
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    subpassDependency.dependencyFlags = 0;
+
+    VkRenderPassCreateInfo renderPassCreateInfo;
+    renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassCreateInfo.pNext = nullptr;
+    renderPassCreateInfo.flags = 0;
+    renderPassCreateInfo.attachmentCount = 1;
+    renderPassCreateInfo.pAttachments = &attachmentDescription;
+    renderPassCreateInfo.subpassCount = 1;
+    renderPassCreateInfo.pSubpasses = &subpassDescription;
+    renderPassCreateInfo.dependencyCount = 0;
+    renderPassCreateInfo.pDependencies = &subpassDependency;
+
+    if (vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create render pass!");
+    }
+}
+
+void createShaderModule(const std::vector<char> &shaderCode, VkShaderModule *shaderModule) {
+    VkShaderModuleCreateInfo shaderCreateInfo;
+    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderCreateInfo.pNext = nullptr;
+    shaderCreateInfo.flags = 0;
+    shaderCreateInfo.codeSize = shaderCode.size();
+    shaderCreateInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
+
+    if (vkCreateShaderModule(device, &shaderCreateInfo, nullptr, shaderModule) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create shader module!");
+    }
+}
+
+// For reading shader files.
+std::vector<char> readFile(const std::string &filename) {
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    if (file) {
+        size_t fileSize = static_cast<size_t>(file.tellg());
+        std::vector<char> fileBuffer(fileSize);
+        file.seekg(0);
+        file.read(fileBuffer.data(), fileSize);
+        file.close();
+        return fileBuffer;
+    } else {
+        throw std::runtime_error("Failed to open file!");
+    }
+}
+
+void createPipeline() {
     // Load Shaders.
     auto shaderCodeVert = readFile("../shaders/vert.spv");
     auto shaderCodeFrag = readFile("../shaders/frag.spv");
@@ -409,8 +457,7 @@ void startVulkan() {
     shaderStageCreateInfoFrag.pName = "main";
     shaderStageCreateInfoFrag.pSpecializationInfo = nullptr;
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = {shaderStageCreateInfoVert,
-                                                      shaderStageCreateInfoFrag};
+    VkPipelineShaderStageCreateInfo shaderStages[] = {shaderStageCreateInfoVert, shaderStageCreateInfoFrag};
 
     VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo;
     vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -513,58 +560,6 @@ void startVulkan() {
         throw std::runtime_error("Failed to create pipeline layout!");
     }
 
-    VkAttachmentDescription attachmentDescription;
-    attachmentDescription.flags = 0;
-    attachmentDescription.format = VK_FORMAT_B8G8R8A8_UNORM;
-    attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT; // important for multisampling
-    attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // no stencil buffers
-    attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentReference attachmentReference;
-    attachmentReference.attachment = 0;
-    attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpassDescription;
-    subpassDescription.flags = 0;
-    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription.inputAttachmentCount = 0;
-    subpassDescription.pInputAttachments = nullptr;
-    subpassDescription.colorAttachmentCount = 1;
-    subpassDescription.pColorAttachments = &attachmentReference;
-    subpassDescription.pResolveAttachments = nullptr;
-    subpassDescription.pDepthStencilAttachment = nullptr;
-    subpassDescription.preserveAttachmentCount = 0;
-    subpassDescription.pPreserveAttachments = nullptr;
-
-    VkSubpassDependency subpassDependency;
-    subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    subpassDependency.dstSubpass = 0;
-    subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    subpassDependency.srcAccessMask = 0;
-    subpassDependency.dstAccessMask =
-            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    subpassDependency.dependencyFlags = 0;
-
-    VkRenderPassCreateInfo renderPassCreateInfo;
-    renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassCreateInfo.pNext = nullptr;
-    renderPassCreateInfo.flags = 0;
-    renderPassCreateInfo.attachmentCount = 1;
-    renderPassCreateInfo.pAttachments = &attachmentDescription;
-    renderPassCreateInfo.subpassCount = 1;
-    renderPassCreateInfo.pSubpasses = &subpassDescription;
-    renderPassCreateInfo.dependencyCount = 0;
-    renderPassCreateInfo.pDependencies = &subpassDependency;
-
-    if (vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create render pass!");
-    }
-
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo;
     graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     graphicsPipelineCreateInfo.pNext = nullptr;
@@ -590,7 +585,9 @@ void startVulkan() {
         VK_SUCCESS) {
         throw std::runtime_error("Failed to create graphics pipeline!");
     }
+}
 
+void createFrameBuffers() {
     framebuffers = new VkFramebuffer[amountOfImagesInSwapChain];
     for (size_t i = 0; i < amountOfImagesInSwapChain; i++) {
         VkFramebufferCreateInfo framebufferCreateInfo;
@@ -608,7 +605,9 @@ void startVulkan() {
             throw std::runtime_error("Failed to create framebuffer!");
         }
     }
+}
 
+void createCommandPool() {
     VkCommandPoolCreateInfo commandPoolCreateInfo;
     commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolCreateInfo.pNext = nullptr;
@@ -618,7 +617,9 @@ void startVulkan() {
     if (vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create command pool!");
     }
+}
 
+void createCommandBuffers() {
     VkCommandBufferAllocateInfo commandBufferAllocateInfo;
     commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     commandBufferAllocateInfo.pNext = nullptr;
@@ -630,7 +631,9 @@ void startVulkan() {
     if (vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffers) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate command buffers!");
     }
+}
 
+void recordCommandBuffers() {
     VkCommandBufferBeginInfo commandBufferBeginInfo;
     commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     commandBufferBeginInfo.pNext = nullptr;
@@ -665,7 +668,9 @@ void startVulkan() {
             throw std::runtime_error("Failed to record command buffer!");
         }
     }
+}
 
+void createSemaphores() {
     VkSemaphoreCreateInfo semaphoreCreateInfo;
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     semaphoreCreateInfo.pNext = nullptr;
@@ -675,10 +680,82 @@ void startVulkan() {
         vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphoreRenderingDone) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create synchronization objects for a frame!");
     }
+}
 
-    // Cleanup
-    delete[] swapchainImages;
-    delete[] physicalDevices; // don't need this if vector<> is used
+void recreateSwapchain() {
+    vkDeviceWaitIdle(device);
+    vkFreeCommandBuffers(device, commandPool, amountOfImagesInSwapChain, commandBuffers);
+    delete[] commandBuffers;
+    vkDestroyCommandPool(device, commandPool, nullptr);
+    for (size_t i = 0; i < amountOfImagesInSwapChain; i++) {
+        vkDestroyFramebuffer(device, framebuffers[i], nullptr);
+    }
+    delete[] framebuffers;
+    vkDestroyPipeline(device, pipeline, nullptr);
+    vkDestroyRenderPass(device, renderPass, nullptr);
+    for (int i = 0; i < amountOfImagesInSwapChain; i++) {
+        vkDestroyImageView(device, imageViews[i], nullptr);
+    }
+    delete[] imageViews;
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyShaderModule(device, shaderModuleFrag, nullptr);
+    vkDestroyShaderModule(device, shaderModuleVert, nullptr);
+    // vkDestroySwapchainKHR(device, swapchain, nullptr);
+
+    VkSwapchainKHR oldSwapchain = swapchain;
+
+    createSwapchain();
+    createImageviews();
+    createRenderpass();
+    createPipeline();
+    createFrameBuffers();
+    createCommandPool();
+    createCommandBuffers();
+    recordCommandBuffers();
+    vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
+}
+
+void onWindowResize(GLFWwindow *window, int width, int height) {
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevices[0], surface, &surfaceCapabilities);
+
+    if (width > surfaceCapabilities.maxImageExtent.width) width = surfaceCapabilities.maxImageExtent.width;
+    if (height > surfaceCapabilities.maxImageExtent.height) height = surfaceCapabilities.maxImageExtent.height;
+
+    if (width == 0 || height == 0) return;
+
+    WIDTH = static_cast<uint32_t>(width);
+    HEIGHT = static_cast<uint32_t>(height);
+    recreateSwapchain();
+}
+
+void startGLFW() {
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    // comment this for resizable window
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan Tutorial", nullptr, nullptr);
+    // uncomment this for resizable window
+    //glfwSetWindowSizeCallback(window, onWindowResize);
+}
+
+void startVulkan() {
+    createInstance();
+    physicalDevices = getAllPhysicalDevices();
+    createGlfwWindowSurface();
+    setupAllPhysicalDevices();
+    createLogicalDevice();
+    initQueue();
+    checkSurfaceSupport();
+    createSwapchain();
+    createImageviews();
+    createRenderpass();
+    createPipeline();
+    createFrameBuffers();
+    createCommandPool();
+    createCommandBuffers();
+    recordCommandBuffers();
+    createSemaphores();
 }
 
 void drawFrame() {
@@ -757,38 +834,39 @@ void shutdownGLFW() {
 }
 
 int main(int argc, char *argv[]) {
-    // TODO make this better :P
-    printf("This is a VulkanTutorial, Name: %s", argv[0]);
+    std::cout << std::endl;
+    std::cout << "Vulkan Tutorial" << std::endl;
+    std::cout << "\tExecute with -h for more options." << std::endl;
+    std::cout << std::endl;
+
+    // TODO make this better or with more options :P
     if (argc >= 2) {
-        for (int i = 0; i < argc; i++) {
+        for (int i = 1; i < argc; i++) {
             if (strcmp(argv[i], "-h") == 0) {
                 std::cout << "Usage: VulkanTut [-h] [-i] [-l]" << std::endl;
-                std::cout << "-h (help): print this." << std::endl;
-                std::cout << "-i (information): print infos about graphics card." << std::endl;
-                std::cout << "-l (layers): print available validation layers." << std::endl;
-                std::cout << "If no parameter is submitted the program will execute." << std::endl;
-                return 0;
-            }
-            if (strcmp(argv[i], "-i") == 0) {
-                startVulkan();
-                shutdownVulkan();
-                printf("\nargv[%d]: %s", i, argv[i]);
-                return 0;
-            }
-            if (strcmp(argv[i], "-l") == 0) {
-                printLayersAndExtensions();
-                return 0;
+                std::cout << "\t-h (help):          print this." << std::endl;
+                std::cout << "\t-l (layers):        print available validation layers and exit." << std::endl;
+                std::cout << "\t-e (extensions):    print available extensions and exit." << std::endl;
+                std::cout << "If no parameter is specified the program will hopefully show some fancy graphics."
+                          << std::endl;
+            } else if (strcmp(argv[i], "-l") == 0) {
+                printLayers();
+            } else if (strcmp(argv[i], "-e") == 0) {
+                printExtensions();
+            } else {
+                std::cout << "Use -h for more info!" << std::endl;
             }
         }
+        return 0;
     } else {
-        std::cout << std::endl;
         startGLFW();
         startVulkan();
         renderLoop();
         shutdownVulkan();
         shutdownGLFW();
-        std::cout << std::endl;
-        std::cout << "GoodBye" << std::endl;
-        return 0;
     }
+
+    std::cout << std::endl;
+    std::cout << "GoodBye" << std::endl;
+    return 0;
 }
