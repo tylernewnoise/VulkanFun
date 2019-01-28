@@ -205,8 +205,8 @@ void setUpDevice(VkPhysicalDevice &device) {
     std::cout << std::endl;
 
     // fix for my tiled window manager to not start with 800x600
-    WIDTH = surfaceCapabilities.maxImageExtent.width;
-    HEIGHT = surfaceCapabilities.maxImageExtent.height;
+    // WIDTH = surfaceCapabilities.maxImageExtent.width;
+    // HEIGHT = surfaceCapabilities.maxImageExtent.height;
 
     // SurfaceFormatOutput (for colors etc...)
     uint32_t amountOfFormats = 0;
@@ -700,7 +700,6 @@ void recreateSwapchain() {
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyShaderModule(device, shaderModuleFrag, nullptr);
     vkDestroyShaderModule(device, shaderModuleVert, nullptr);
-    // vkDestroySwapchainKHR(device, swapchain, nullptr);
 
     VkSwapchainKHR oldSwapchain = swapchain;
 
