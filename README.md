@@ -41,7 +41,7 @@ $ ./compileShaders.sh
 
 ```$ ./VulkanTut```
 
-If everything went well you should see a spinning galaxy:
+If everything went well you should see two spinning galaxies:
 ![galaxy_texure](screenshot.png)
 
 #### Credits
