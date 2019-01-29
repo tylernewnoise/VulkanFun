@@ -1,6 +1,6 @@
 #Vulkan Tutorial
 
-This is completly based on this video tutorial: [klick](https://www.youtube.com/watch?v=mzVFHEmnRLg&index=1&list=PL58qjcU5nk8uH9mmlASm4SFy1yuPzDAH0), all hail goes to this guy. I can also recommend [this](https://vulkan-tutorial.com).
+This is completly based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy.
 
 ### General
 
@@ -15,13 +15,20 @@ In order to build and run this, you'll need the following libraries and SDKs. As
 * The Vulkan SDK ```$ sudo pacman -S vulkan-devel```
 * [GLFW Library](https://www.glfw.org/) ```$ sudo pacman -S glfw-x11```
 * [GLSL](https://www.khronos.org/registry/OpenGL/index_gl.php) ```$ sudo pacman -S glslang```
-
+* [GLM](https://glm.g-truc.net/0.9.9/index.html ) ```$ sudo pacman -S glm```
+ 
 #### Build and run
 
 * Clone the project:
 
 ```git clone https://github.com/tylernewnoise/VulkanTutorial.git```
-* Build it:
+* Build the shaders:
+```
+$ cd VulkanTutorial
+$ cd shaders
+$ ./compileShaders.sh
+```
+* Build the application:
  ```
  $ cd VulkanTutorial
  $ mkdir build
@@ -29,6 +36,21 @@ In order to build and run this, you'll need the following libraries and SDKs. As
  $ cmake ..
  $ make
 ```
+
 * Run it:
 
 ```$ ./VulkanTut```
+
+If everything went well you should see a spinning galaxy:
+![galaxy_texure](screenshot.png)
+
+#### Credits
+
+* [of course](https://vulkan-tutorial.com)
+* brotcrunshers [youtube tutorial](https://www.youtube.com/watch?v=mzVFHEmnRLg&index=1&list=PL58qjcU5nk8uH9mmlASm4SFy1yuPzDAH0)
+* Picture of galaxy from [here](https://www.flickr.com/photos/nasacommons/9467311154/in/photolist-fqArLE-bTceKc-8phfAM-npPhJ7-bTcCAt-r8td3y-bEha9y-fq2Sbf-bEha4f-r9nNFv-fqmbDn-8pkquq-bTcmwH-bEhcEN-bEhemC-bEhagb-otWLAH-qRWXqx-bEhfpJ-bTcfYn-bTcuj6-bEhVV5-8cJQMe-bTcBMc-bEhVUu-bEhCa5-do6zvq-bTbVRZ-btKxwX-npPh5b-bTcFfF-bEheEA-bEhWDj-fq17jY-qR79LP-bTbTSr-bTce3n-fpNgdH-bTcfYB-dCrz1Z-fq3kMf-bEhWkE-fqAYHf-Lct2bP-ZnqK2r-7hKa3t-QdxXBq-qR19hL-bTbVX8-i54VDR)
+* [stb](https://github.com/nothings/stb) image library
+* [Sascha Willems](https://github.com/SaschaWillems/Vulkan)
+
+
+
