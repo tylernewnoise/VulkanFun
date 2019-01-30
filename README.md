@@ -41,16 +41,17 @@ $ ./compileShaders.sh
 
 ```$ ./VulkanTut```
 
-If everything went well you should see two spinning galaxies:
+If everything went well you should see a rotating gun:
 ![galaxy_texure](screenshot.png)
 
-#### Credits
+#### Credits and resources
 
 * [of course](https://vulkan-tutorial.com)
 * brotcrunshers [youtube tutorial](https://www.youtube.com/watch?v=mzVFHEmnRLg&index=1&list=PL58qjcU5nk8uH9mmlASm4SFy1yuPzDAH0)
 * Picture of galaxy from [here](https://www.flickr.com/photos/nasacommons/9467311154/in/photolist-fqArLE-bTceKc-8phfAM-npPhJ7-bTcCAt-r8td3y-bEha9y-fq2Sbf-bEha4f-r9nNFv-fqmbDn-8pkquq-bTcmwH-bEhcEN-bEhemC-bEhagb-otWLAH-qRWXqx-bEhfpJ-bTcfYn-bTcuj6-bEhVV5-8cJQMe-bTcBMc-bEhVUu-bEhCa5-do6zvq-bTbVRZ-btKxwX-npPh5b-bTcFfF-bEheEA-bEhWDj-fq17jY-qR79LP-bTbTSr-bTce3n-fpNgdH-bTcfYB-dCrz1Z-fq3kMf-bEhWkE-fqAYHf-Lct2bP-ZnqK2r-7hKa3t-QdxXBq-qR19hL-bTbVX8-i54VDR)
 * [stb](https://github.com/nothings/stb) image library
+* [tinyobjloader](https://github.com/syoyo/tinyobjloader)
 * [Sascha Willems](https://github.com/SaschaWillems/Vulkan)
-
+* [gun model](https://free3d.com/3d-model/45-acp-smith-and-wesson-13999.html)
 
 

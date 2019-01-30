@@ -9,7 +9,7 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
 include_directories($(GLFW_INCLUDE_DIRS))
 
-add_executable(VulkanTut src/VulkanTutorial.cpp external/stb_image.h)
+add_executable(VulkanTut src/VulkanTutorial.cpp external/stb_image.h external/tiny_obj_loader.h)
 
 target_link_libraries(VulkanTut Vulkan::Vulkan)
 target_link_libraries(VulkanTut ${GLFW_LIBRARIES})
