@@ -126,8 +126,8 @@ private:
             "VK_LAYER_LUNARG_standard_validation"
     };
 
-    const std::string MODEL_PATH = "../models/gun.obj";
-    const std::string TEXTURE_PATH = "../textures/gun.jpg";
+    const std::string MODEL_PATH = "../data/models/gun.obj";
+    const std::string TEXTURE_PATH = "../data/textures/gun.jpg";
 
     //const std::string MODEL_PATH = "../models/chalet.obj";
     //const std::string TEXTURE_PATH = "../textures/chalet.jpg";
@@ -678,8 +678,8 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertShaderCode = readFile("../shaders/vert.spv");
-        auto fragShaderCode = readFile("../shaders/frag.spv");
+        auto vertShaderCode = readFile("../data/shaders/vert.spv"); //TODO
+        auto fragShaderCode = readFile("../data/shaders/frag.spv"); //TODO
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -856,7 +856,7 @@ private:
             }
         }
 
-        throw std::runtime_error("failed to find supported format!");
+        throw std::runtime_error("Failed to find supported format!");
     }
 
     VkFormat findDepthFormat() {
