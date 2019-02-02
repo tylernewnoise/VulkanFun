@@ -5,6 +5,9 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <glm/gtx/hash.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -71,6 +74,14 @@ struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
+    glm::vec3 normal;
+
+    /* Provides comparability for Hashmap
+     *
+     */
+    bool operator==(const Vertex& other) const {
+        return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
+    }
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription = {};
@@ -80,8 +91,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -97,15 +108,31 @@ struct Vertex {
         attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[2].offset = static_cast<uint32_t>(offsetof(Vertex, texCoord));
 
+	    attributeDescriptions[3].binding = 0;
+	    attributeDescriptions[3].location = 3;
+	    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+	    attributeDescriptions[3].offset = static_cast<uint32_t>(offsetof(Vertex, normal));
+
         return attributeDescriptions;
     }
 };
 
 
+namespace std {
+template<> struct hash<Vertex> {
+    size_t operator()(Vertex const& vertex) const {
+        return ((hash<glm::vec3>()(vertex.pos) ^
+            (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+            (hash<glm::vec2>()(vertex.texCoord) << 1);
+    }
+};
+}
+
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+    glm::vec3 lightPosition;
 };
 
 class VulkanTutorial {
@@ -126,8 +153,8 @@ private:
             "VK_LAYER_LUNARG_standard_validation"
     };
 
-    const std::string MODEL_PATH = "../data/models/gun.obj";
-    const std::string TEXTURE_PATH = "../data/textures/gun.jpg";
+    const std::string MODEL_PATH = "../data/models/fighter.obj";
+    const std::string TEXTURE_PATH = "../data/textures/fighter2.jpg";
 
     //const std::string MODEL_PATH = "../models/chalet.obj";
     //const std::string TEXTURE_PATH = "../textures/chalet.jpg";
@@ -740,7 +767,7 @@ private:
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
         VkPipelineMultisampleStateCreateInfo multisampling = {};
@@ -888,7 +915,7 @@ private:
         auto imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {
-            throw std::runtime_error("Failed to load texture image!");
+            throw std::runtime_error("Failed to load texture image " + TEXTURE_PATH);
         }
 
         VkBuffer stagingBuffer;
@@ -1131,7 +1158,8 @@ private:
     }
 
     void loadModel() {
-        tinyobj::attrib_t attrib;
+
+	    tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
@@ -1140,24 +1168,41 @@ private:
             throw std::runtime_error(warn + err);
         }
 
+        std::unordered_map<Vertex, uint32_t > uniqueVertices;
+
         for (const auto &shape : shapes) {
             for (const auto &index : shape.mesh.indices) {
                 Vertex vertex = {};
 
                 vertex.pos = {
                         attrib.vertices[3 * index.vertex_index + 0],
-                        attrib.vertices[3 * index.vertex_index + 1],
-                        attrib.vertices[3 * index.vertex_index + 2]
+                        attrib.vertices[3 * index.vertex_index + 2],
+                        attrib.vertices[3 * index.vertex_index + 1]
                 };
 
-                vertex.texCoord = {
+                if( attrib.normals.empty() ) {
+	                throw std::runtime_error("model has no normals");
+                }
+
+	            vertex.normal = {
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 2],
+                    attrib.normals[3 * index.normal_index + 1]
+                };
+
+	            vertex.texCoord = {
                         attrib.texcoords[2 * index.texcoord_index + 0],
                         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
                 };
 
-                vertex.color = {1.0f, 1.0f, 1.0f};
-                vertices.push_back(vertex);
-                indices.push_back(static_cast<unsigned int &&>(indices.size()));
+	            vertex.color = {1.0f, 1.0f, 1.0f};
+
+	            if (uniqueVertices.count(vertex) == 0) {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+
+	            indices.push_back(static_cast<unsigned int &&>(uniqueVertices[vertex]));
             }
         }
     }
@@ -1259,11 +1304,17 @@ private:
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo = {};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        //auto flip = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // upright fighter
+        //flip = flip * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        auto rotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.model = rotation;
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
                                     10.0f);
         ubo.proj[1][1] *= -1;
+
+        ubo.lightPosition = glm::vec3(0,3,1);
 
         void *data;
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -1635,7 +1686,7 @@ private:
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
-            throw std::runtime_error("Failed to open file!");
+            throw std::runtime_error("Failed to open file " + filename);
         }
 
         size_t fileSize = (size_t) file.tellg();
