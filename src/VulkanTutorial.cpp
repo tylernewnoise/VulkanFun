@@ -5,6 +5,9 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <glm/gtx/hash.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -72,6 +75,13 @@ struct Vertex {
     glm::vec3 color;
     glm::vec2 texCoord;
 
+    /* Provides comparability for Hashmap
+     *
+     */
+    bool operator==(const Vertex& other) const {
+        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+    }
+
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
@@ -101,6 +111,16 @@ struct Vertex {
     }
 };
 
+
+namespace std {
+template<> struct hash<Vertex> {
+    size_t operator()(Vertex const& vertex) const {
+        return ((hash<glm::vec3>()(vertex.pos) ^
+            (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+            (hash<glm::vec2>()(vertex.texCoord) << 1);
+    }
+};
+}
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -1140,6 +1160,8 @@ private:
             throw std::runtime_error(warn + err);
         }
 
+        std::unordered_map<Vertex, uint32_t > uniqueVertices;
+
         for (const auto &shape : shapes) {
             for (const auto &index : shape.mesh.indices) {
                 Vertex vertex = {};
@@ -1155,9 +1177,14 @@ private:
                         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
                 };
 
-                vertex.color = {1.0f, 1.0f, 1.0f};
-                vertices.push_back(vertex);
-                indices.push_back(static_cast<unsigned int &&>(indices.size()));
+	            vertex.color = {1.0f, 1.0f, 1.0f};
+
+	            if (uniqueVertices.count(vertex) == 0) {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+
+	            indices.push_back(static_cast<unsigned int &&>(uniqueVertices[vertex]));
             }
         }
     }
