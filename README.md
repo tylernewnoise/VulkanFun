@@ -25,7 +25,7 @@ In order to build and run this, you'll need the following libraries and SDKs. As
 * Build the shaders:
 ```
 $ cd VulkanTutorial
-$ cd shaders
+$ cd data/shaders
 $ ./compileShaders.sh
 ```
 * Build the application:
