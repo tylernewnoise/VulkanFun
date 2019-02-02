@@ -1180,16 +1180,15 @@ private:
                         attrib.vertices[3 * index.vertex_index + 2]
                 };
 
-	            std::cout << "FUCK" << index.vertex_index << std::endl;
+                if( attrib.normals.empty() ) {
+	                throw std::runtime_error("model has no normals");
+                }
 
 	            vertex.normal = {
-                    attrib.normals[3 * index.vertex_index + 0],
-                    attrib.normals[3 * index.vertex_index + 1],
-                    attrib.normals[3 * index.vertex_index + 2]
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 1],
+                    attrib.normals[3 * index.normal_index + 2]
                 };
-
-	            std::cout << "YEAH" << std::endl;
-
 
 	            vertex.texCoord = {
                         attrib.texcoords[2 * index.texcoord_index + 0],
