@@ -26,5 +26,5 @@ void main()
     vec3 diffuse = max(0.0, dot(N, L)) * fragColor;
     vec3 specular = pow(max(0.0, dot(R,V)), 16.0) * vec3(1.35);
 
-    outColor = vec4( ambient + diffuse + specular, 1.0f);
+    outColor = vec4( ambient + diffuse + specular, 1.0f) * texture(texSampler, fragTexCoord);
 }
