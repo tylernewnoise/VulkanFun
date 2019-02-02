@@ -126,8 +126,8 @@ private:
             "VK_LAYER_LUNARG_standard_validation"
     };
 
-    const std::string MODEL_PATH = "../data/models/gun.obj";
-    const std::string TEXTURE_PATH = "../data/textures/gun.jpg";
+    const std::string MODEL_PATH = "../data/models/fighter.obj";
+    const std::string TEXTURE_PATH = "../data/textures/fighter2.jpg";
 
     //const std::string MODEL_PATH = "../models/chalet.obj";
     //const std::string TEXTURE_PATH = "../textures/chalet.jpg";
@@ -888,7 +888,7 @@ private:
         auto imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {
-            throw std::runtime_error("Failed to load texture image!");
+            throw std::runtime_error("Failed to load texture image " + TEXTURE_PATH);
         }
 
         VkBuffer stagingBuffer;
@@ -1259,7 +1259,12 @@ private:
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo = {};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        auto flip = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // upright fighter
+        flip = flip * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        auto rotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        auto scale = glm::scale( glm::mat4(0.02),  glm::vec3(0.02));
+        ubo.model = flip * rotation * scale;
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
                                     10.0f);
@@ -1635,7 +1640,7 @@ private:
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
-            throw std::runtime_error("Failed to open file!");
+            throw std::runtime_error("Failed to open file " + filename);
         }
 
         size_t fileSize = (size_t) file.tellg();
