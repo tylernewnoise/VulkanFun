@@ -76,9 +76,7 @@ struct Vertex {
     glm::vec2 texCoord;
     glm::vec3 normal;
 
-    /* Provides comparability for Hashmap
-     *
-     */
+    // Provides comparability for Hashmap
     bool operator==(const Vertex& other) const {
         return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
     }
@@ -153,27 +151,8 @@ private:
             "VK_LAYER_LUNARG_standard_validation"
     };
 
-    const std::string MODEL_PATH = "../data/models/fighter.obj";
-    const std::string TEXTURE_PATH = "../data/textures/fighter2.jpg";
-
-    //const std::string MODEL_PATH = "../models/chalet.obj";
-    //const std::string TEXTURE_PATH = "../textures/chalet.jpg";
-    /*const std::vector<Vertex> vertices = {
-            {{-0.5f, -0.5f, 0.0f},  {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{0.5f,  -0.5f, 0.0f},  {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{0.5f,  0.5f,  0.0f},  {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-0.5f, 0.5f,  0.0f},  {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{0.5f,  -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-            {{0.5f,  0.5f,  -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-0.5f, 0.5f,  -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-    };
-
-    const std::vector<uint16_t> indices = {
-            0, 1, 2, 2, 3, 0,
-            4, 5, 6, 6, 7, 4
-    };*/
+    const std::string MODEL_PATH = "../data/models/gun.obj";
+    const std::string TEXTURE_PATH = "../data/textures/gun.jpg";
 
     GLFWwindow *window{};
 
@@ -705,8 +684,8 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertShaderCode = readFile("../data/shaders/vert.spv"); //TODO
-        auto fragShaderCode = readFile("../data/shaders/frag.spv"); //TODO
+        auto vertShaderCode = readFile("../data/shaders/vert.spv");
+        auto fragShaderCode = readFile("../data/shaders/frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -915,7 +894,7 @@ private:
         auto imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {
-            throw std::runtime_error("Failed to load texture image " + TEXTURE_PATH);
+            throw std::runtime_error("Failed to load texture image " + TEXTURE_PATH + "!");
         }
 
         VkBuffer stagingBuffer;
@@ -1181,7 +1160,7 @@ private:
                 };
 
                 if( attrib.normals.empty() ) {
-	                throw std::runtime_error("model has no normals");
+	                throw std::runtime_error("Model has no normals!");
                 }
 
 	            vertex.normal = {
@@ -1686,7 +1665,7 @@ private:
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
-            throw std::runtime_error("Failed to open file " + filename);
+            throw std::runtime_error("Failed to open file " + filename + "!");
         }
 
         size_t fileSize = (size_t) file.tellg();
