@@ -151,8 +151,8 @@ private:
             "VK_LAYER_LUNARG_standard_validation"
     };
 
-    const std::string MODEL_PATH = "../data/models/gun.obj";
-    const std::string TEXTURE_PATH = "../data/textures/gun.jpg";
+    const std::string MODEL_PATH = "../data/models/fighter.obj";
+    const std::string TEXTURE_PATH = "../data/textures/fighter2.jpg";
 
     GLFWwindow *window{};
 
