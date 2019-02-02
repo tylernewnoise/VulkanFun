@@ -1,6 +1,6 @@
 # Vulkan Tutorial
 
-This is completly based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy.
+This is completly based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy. It loads a 3D Model from a obj-file, puts a texture on it and applies [Phong Shading](https://en.wikipedia.org/wiki/Shading#Phong_shading).
 
 ### General
 
@@ -41,7 +41,7 @@ $ ./compileShaders.sh
 
 ```$ ./VulkanTut```
 
-If everything went well you should see a rotating gun:
+If everything went well you should see a rotating gun or a Star Wars Naboo fighter.
 ![galaxy_texure](screenshot.png)
 
 #### Credits and resources
