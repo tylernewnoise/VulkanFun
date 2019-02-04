@@ -143,6 +143,7 @@ public:
     }
 
 private:
+    // swapchain preparation
     const std::vector<const char *> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
@@ -352,6 +353,7 @@ private:
         }
 #endif
 
+        // check what layers we have
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "VulkanTutorial";
@@ -374,7 +376,7 @@ private:
 #else
         createInfo.enabledLayerCount = 0;
 #endif
-
+        // creating an vulkan instance
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create instance!");
         }
@@ -405,6 +407,7 @@ private:
     }
 
     void pickPhysicalDevice() {
+        // physical graka access
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -446,6 +449,7 @@ private:
         VkPhysicalDeviceFeatures deviceFeatures = {};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
 
+        // device create info. necessary before creating a device.
         VkDeviceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -463,7 +467,8 @@ private:
 #else
         createInfo.enabledLayerCount = 0;
 #endif
-
+        // creating the device itself
+        // todo pick best device, not the first one.
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create logical device!");
         }
@@ -485,6 +490,7 @@ private:
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
+        // create swapchain
         VkSwapchainCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = surface;
@@ -516,6 +522,7 @@ private:
             throw std::runtime_error("Failed to create swap chain!");
         }
 
+        // get the images
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
         swapChainImages.resize(imageCount);
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
@@ -534,6 +541,7 @@ private:
     }
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+        // create imageviews (window in picture)
         VkImageViewCreateInfo viewInfo = {};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -554,12 +562,14 @@ private:
     }
 
     void createRenderPass() {
+        // creating a renderpathattachment description
+        // (buffer / memorylocations which we can give to vulkan to comunicate (both ways)
         VkAttachmentDescription colorAttachment = {};
         colorAttachment.format = swapChainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; //stencils attachments, extra buffers which let us ignore certain pixels
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -684,26 +694,31 @@ private:
     }
 
     void createGraphicsPipeline() {
+        // read file as char array
         auto vertShaderCode = readFile("../data/shaders/vert.spv");
         auto fragShaderCode = readFile("../data/shaders/frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
+        // defining the vertex shader
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName = "main";
+        vertShaderStageInfo.pName = "main"; // starting point in vertex shader
 
+        // defining the fragment shader
         VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
         fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragShaderStageInfo.module = fragShaderModule;
-        fragShaderStageInfo.pName = "main";
+        fragShaderStageInfo.pName = "main"; // starting point in fragment shader
 
+        // put shaderinfo into array
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
+        // fixed functions in pipeline
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 
         auto bindingDescription = Vertex::getBindingDescription();
@@ -720,6 +735,8 @@ private:
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
+        // create viewport --> where on the screen we want to draw? eg splitscreen,
+        // fullscreen
         VkViewport viewport = {};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -728,10 +745,14 @@ private:
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
+        //scissors (change the view after creating the viewport),
+        // e.g. drop lower half of the screen
+        //defines not what is cut out, but what is shown
         VkRect2D scissor = {};
         scissor.offset = {0, 0};
         scissor.extent = swapChainExtent;
 
+        //combine viewport and scissor
         VkPipelineViewportStateCreateInfo viewportState = {};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1;
@@ -739,19 +760,21 @@ private:
         viewportState.scissorCount = 1;
         viewportState.pScissors = &scissor;
 
+        // rasterizer: build fragments from vertices from vertex shader to put into fragment shader
         VkPipelineRasterizationStateCreateInfo rasterizer = {};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizer.depthClampEnable = VK_FALSE;
-        rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;
+        rasterizer.depthClampEnable = VK_FALSE; // show things outside of clamp "zone" (zone where things are shown in distance to camera)
+        rasterizer.rasterizerDiscardEnable = VK_FALSE; // all primitives at rasterizer are dropped
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL; // what is shown? filled triangles, lines or points?
+        rasterizer.lineWidth = 1.0f;  // how thick draw the line?
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT; // what triangles are dropped? frontside, backside or triangle? #performancetuning
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE; // clockwise or counterclockwise triangle definition?
+        rasterizer.depthBiasEnable = VK_FALSE; // calculate constant value onto depth value
 
+        // antialaising (multisampling possible with vulkan)
         VkPipelineMultisampleStateCreateInfo multisampling = {};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.sampleShadingEnable = VK_FALSE; //deactivate multisampling?
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
         VkPipelineDepthStencilStateCreateInfo depthStencil = {};
@@ -762,12 +785,15 @@ private:
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
 
+        // blend mode configuration: combine pixel data from frame buffer (image from swapchain)
+        // with new pixel data e.g. glass in front of wall
         VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
         colorBlendAttachment.colorWriteMask =
                 VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                 VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;
 
+        // global handling of all framebuffers (above only one framebuffer)
         VkPipelineColorBlendStateCreateInfo colorBlending = {};
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
@@ -779,11 +805,14 @@ private:
         colorBlending.blendConstants[2] = 0.0f;
         colorBlending.blendConstants[3] = 0.0f;
 
+        // uniform variables: set shader values without recompiling (runtime)
+        // we dont use it yet.
         VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
+        // pipeline layout
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create pipeline layout!");
         }
@@ -1475,6 +1504,7 @@ private:
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
+        // uint32 to char cast, because spearV is always 32bit per instruction
         createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
         VkShaderModule shaderModule;
@@ -1662,16 +1692,18 @@ private:
     }
 
     static std::vector<char> readFile(const std::string &filename) {
+        //read from end to know how large the file is
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open file " + filename + "!");
         }
 
+        //get filesize
         size_t fileSize = (size_t) file.tellg();
         std::vector<char> buffer(fileSize);
 
-        file.seekg(0);
+        file.seekg(0); //go back to start of the file to read it
         file.read(buffer.data(), fileSize);
 
         file.close();
