@@ -133,6 +133,24 @@ struct UniformBufferObject {
     glm::vec3 lightPosition;
 };
 
+class InteractiveState {
+
+	static float rotation;
+
+  public:
+	static bool rotate;
+
+	static float get_rotation(float to_add);
+};
+
+bool InteractiveState::rotate =  false;
+float InteractiveState::rotation = 0.0f;
+float InteractiveState::get_rotation( float to_add = 0.0f) {
+	InteractiveState::rotation += to_add;
+	return glm::radians(InteractiveState::rotation);
+}
+
+
 class VulkanTutorial {
 public:
     void run() {
@@ -212,6 +230,12 @@ private:
 
     bool framebufferResized = false;
 
+	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	{
+		if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+			InteractiveState::rotate = !InteractiveState::rotate;
+	}
+
     void initWindow() {
         glfwInit();
 
@@ -220,6 +244,7 @@ private:
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+	    glfwSetKeyCallback(window, key_callback);
     }
 
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
@@ -1315,7 +1340,11 @@ private:
 
         //auto flip = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // upright fighter
         //flip = flip * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        auto rotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        auto rotation = glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(), glm::vec3(0.0f, 0.0f, 1.0f));
+        if( InteractiveState::rotate ) {
+	        rotation = glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(0.01f), glm::vec3(0.0f, 0.0f, 1.0f));
+        }
         ubo.model = rotation;
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
