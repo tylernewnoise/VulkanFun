@@ -13,10 +13,6 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    // outColor = vec4(fragTexCoord, 0.0, 1.0); //RGBAlpha, colors only
-    //outColor = texture(texSampler, fragTexCoord); // pic only
-    // outColor = vec4(fragColor * texture(texSampler, fragTexCoord).rgb, 1.0); // texture colors with vertex colors
-
     vec3 N = normalize(fragNormal);
     vec3 L = normalize(fragLightVec);
     vec3 V = normalize(fragViewVec);
@@ -27,4 +23,8 @@ void main()
     vec3 specular = pow(max(0.0, dot(R,V)), 16.0) * vec3(1.35);
 
     outColor = vec4( ambient + diffuse + specular, 1.0f) * texture(texSampler, fragTexCoord);
+
+    //outColor = vec4(fragTexCoord, 0.0, 1.0); //RGBAlpha, colors only
+    //outColor = texture(texSampler, fragTexCoord); // pic only
+    //outColor = vec4(fragColor * texture(texSampler, fragTexCoord).rgb, 1.0); // texture colors with vertex colors
 }
