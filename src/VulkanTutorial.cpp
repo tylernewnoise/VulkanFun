@@ -77,7 +77,7 @@ struct Vertex {
     glm::vec3 normal;
 
     // Provides comparability for Hashmap
-    bool operator==(const Vertex& other) const {
+    bool operator==(const Vertex &other) const {
         return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
     }
 
@@ -106,25 +106,24 @@ struct Vertex {
         attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[2].offset = static_cast<uint32_t>(offsetof(Vertex, texCoord));
 
-	    attributeDescriptions[3].binding = 0;
-	    attributeDescriptions[3].location = 3;
-	    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-	    attributeDescriptions[3].offset = static_cast<uint32_t>(offsetof(Vertex, normal));
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[3].offset = static_cast<uint32_t>(offsetof(Vertex, normal));
 
         return attributeDescriptions;
     }
 };
 
 
-namespace std {
-template<> struct hash<Vertex> {
-    size_t operator()(Vertex const& vertex) const {
+template<>
+struct std::hash<Vertex> {
+    size_t operator()(Vertex const &vertex) const {
         return ((hash<glm::vec3>()(vertex.pos) ^
-            (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-            (hash<glm::vec2>()(vertex.texCoord) << 1);
+                 (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+               (hash<glm::vec2>()(vertex.texCoord) << 1);
     }
 };
-}
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -143,15 +142,17 @@ public:
     }
 
 private:
-    // swapchain preparation
+    // Swapchain preparation.
     const std::vector<const char *> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
+    // Use standard validation layer.
     const std::vector<const char *> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"
     };
 
+    // Path to model and texture.
     const std::string MODEL_PATH = "../data/models/fighter.obj";
     const std::string TEXTURE_PATH = "../data/textures/fighter2.jpg";
 
@@ -180,6 +181,7 @@ private:
     VkPipelineLayout pipelineLayout{};
     VkPipeline graphicsPipeline{};
 
+    uint32_t mipLevels;
     VkImage textureImage{};
     VkDeviceMemory textureImageMemory{};
     VkImageView textureImageView{};
@@ -212,6 +214,7 @@ private:
 
     bool framebufferResized = false;
 
+    // Window functionality is provided by the glfw lib.
     void initWindow() {
         glfwInit();
 
@@ -222,6 +225,7 @@ private:
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
 
+    // Callback for resizing the window.
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
         auto app = reinterpret_cast<VulkanTutorial *>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
@@ -262,6 +266,7 @@ private:
         vkDeviceWaitIdle(device);
     }
 
+    // Clean swapchain if window is resized.
     void cleanupSwapChain() {
         vkDestroyImageView(device, depthImageView, nullptr);
         vkDestroyImage(device, depthImage, nullptr);
@@ -284,6 +289,7 @@ private:
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
 
+    // Clean and free memory and objects.
     void cleanup() {
         cleanupSwapChain();
 
@@ -353,7 +359,7 @@ private:
         }
 #endif
 
-        // check what layers we have
+        // Set application info.
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "VulkanTutorial";
@@ -376,7 +382,7 @@ private:
 #else
         createInfo.enabledLayerCount = 0;
 #endif
-        // creating an vulkan instance
+        // Creating an vulkan instance.
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create instance!");
         }
@@ -407,7 +413,7 @@ private:
     }
 
     void pickPhysicalDevice() {
-        // physical graka access
+        // Physical graphics card access.
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -449,7 +455,7 @@ private:
         VkPhysicalDeviceFeatures deviceFeatures = {};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
 
-        // device create info. necessary before creating a device.
+        // Device create info. Necessary before creating a device.
         VkDeviceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -467,8 +473,7 @@ private:
 #else
         createInfo.enabledLayerCount = 0;
 #endif
-        // creating the device itself
-        // todo pick best device, not the first one.
+        // Creating the device itself.
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create logical device!");
         }
@@ -490,7 +495,6 @@ private:
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
-        // create swapchain
         VkSwapchainCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = surface;
@@ -522,7 +526,7 @@ private:
             throw std::runtime_error("Failed to create swap chain!");
         }
 
-        // get the images
+        // Get rendered images.
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
         swapChainImages.resize(imageCount);
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
@@ -536,11 +540,11 @@ private:
 
         for (uint32_t i = 0; i < swapChainImages.size(); i++) {
             swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat,
-                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+                                                     VK_IMAGE_ASPECT_COLOR_BIT, 1);
         }
     }
 
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
         // create imageviews (window in picture)
         VkImageViewCreateInfo viewInfo = {};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -549,7 +553,7 @@ private:
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
         viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.levelCount = mipLevels;
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
@@ -562,7 +566,7 @@ private:
     }
 
     void createRenderPass() {
-        // creating a renderpathattachment description
+        // creating a renderpassattachment description
         // (buffer / memorylocations which we can give to vulkan to comunicate (both ways)
         VkAttachmentDescription colorAttachment = {};
         colorAttachment.format = swapChainImageFormat;
@@ -694,31 +698,30 @@ private:
     }
 
     void createGraphicsPipeline() {
-        // read file as char array
         auto vertShaderCode = readFile("../data/shaders/vert.spv");
         auto fragShaderCode = readFile("../data/shaders/frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
-        // defining the vertex shader
+        // Defining the vertex shader.
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertShaderStageInfo.module = vertShaderModule;
         vertShaderStageInfo.pName = "main"; // starting point in vertex shader
 
-        // defining the fragment shader
+        // Defining the fragment shader.
         VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
         fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragShaderStageInfo.module = fragShaderModule;
         fragShaderStageInfo.pName = "main"; // starting point in fragment shader
 
-        // put shaderinfo into array
+        // Put shaderinfo into array.
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-        // fixed functions in pipeline
+        // Fixed functions in pipeline.
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 
         auto bindingDescription = Vertex::getBindingDescription();
@@ -735,8 +738,7 @@ private:
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-        // create viewport --> where on the screen we want to draw? eg splitscreen,
-        // fullscreen
+        // Create viewport - where on the screen we want to draw (splitscreen, fullscreen)?
         VkViewport viewport = {};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -745,14 +747,13 @@ private:
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
-        //scissors (change the view after creating the viewport),
-        // e.g. drop lower half of the screen
-        //defines not what is cut out, but what is shown
+        // Scissors (change the view after creating the viewport), e.g. drop lower half of the screen.
+        // Defines not what is cut out, but what is shown.
         VkRect2D scissor = {};
         scissor.offset = {0, 0};
         scissor.extent = swapChainExtent;
 
-        //combine viewport and scissor
+        // Combine viewport and scissor.
         VkPipelineViewportStateCreateInfo viewportState = {};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1;
@@ -760,7 +761,7 @@ private:
         viewportState.scissorCount = 1;
         viewportState.pScissors = &scissor;
 
-        // rasterizer: build fragments from vertices from vertex shader to put into fragment shader
+        // Rasterizer: build fragments from vertices from vertex shader to put into fragment shader
         VkPipelineRasterizationStateCreateInfo rasterizer = {};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE; // show things outside of clamp "zone" (zone where things are shown in distance to camera)
@@ -771,7 +772,7 @@ private:
         rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE; // clockwise or counterclockwise triangle definition?
         rasterizer.depthBiasEnable = VK_FALSE; // calculate constant value onto depth value
 
-        // antialaising (multisampling possible with vulkan)
+        // Antialaising (multisampling possible with vulkan)
         VkPipelineMultisampleStateCreateInfo multisampling = {};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE; //deactivate multisampling?
@@ -812,7 +813,6 @@ private:
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-        // pipeline layout
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create pipeline layout!");
         }
@@ -908,12 +908,12 @@ private:
 
     void createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
-        createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+        createImage(swapChainExtent.width, swapChainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL,
                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage,
                     depthImageMemory);
-        depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
         transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
-                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
     }
 
@@ -921,6 +921,9 @@ private:
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         auto imageSize = texWidth * texHeight * 4;
+
+        // Calculate number of levels in mip chain.
+        mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
         if (!pixels) {
             throw std::runtime_error("Failed to load texture image " + TEXTURE_PATH + "!");
@@ -939,23 +942,107 @@ private:
 
         stbi_image_free(pixels);
 
-        createImage(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), VK_FORMAT_R8G8B8A8_UNORM,
-                    VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        createImage(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), mipLevels,
+                    VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
         transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
         copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth),
                           static_cast<uint32_t>(texHeight));
-        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+        generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight, mipLevels);
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
     void createTextureImageView() {
-        textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+        textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT,
+                                           mipLevels);
+    }
+
+    void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
+        // Check if image format supports linear blitting.
+        VkFormatProperties formatProperties;
+        vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
+        if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+            throw std::runtime_error("Texture image format does not support linear blitting!");
+        }
+
+
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.image = image;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+        barrier.subresourceRange.levelCount = 1;
+
+        int32_t mipWidth = texWidth;
+        int32_t mipHeight = texHeight;
+
+        for (uint32_t i = 1; i < mipLevels; i++) {
+            barrier.subresourceRange.baseMipLevel = i - 1;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+            vkCmdPipelineBarrier(commandBuffer,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                                 0, nullptr,
+                                 0, nullptr,
+                                 1, &barrier);
+            VkImageBlit blit = {};
+            blit.srcOffsets[0] = {0, 0, 0};
+            blit.srcOffsets[1] = {mipWidth, mipHeight, 1};
+            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.srcSubresource.mipLevel = i - 1;
+            blit.srcSubresource.baseArrayLayer = 0;
+            blit.srcSubresource.layerCount = 1;
+            blit.dstOffsets[0] = {0, 0, 0};
+            blit.dstOffsets[1] = {mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
+            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.dstSubresource.mipLevel = i;
+            blit.dstSubresource.baseArrayLayer = 0;
+            blit.dstSubresource.layerCount = 1;
+            vkCmdBlitImage(commandBuffer,
+                           image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1, &blit,
+                           VK_FILTER_LINEAR);
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            vkCmdPipelineBarrier(commandBuffer,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                                 0, nullptr,
+                                 0, nullptr,
+                                 1, &barrier);
+
+            if (mipWidth > 1) mipWidth /= 2;
+            if (mipHeight > 1) mipHeight /= 2;
+        }
+        barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        vkCmdPipelineBarrier(commandBuffer,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                             0, nullptr,
+                             0, nullptr,
+                             1, &barrier);
+
+        endSingleTimeCommands(commandBuffer);
     }
 
     void createTextureSampler() {
@@ -974,15 +1061,18 @@ private:
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.0f;
+        // samplerInfo.minLod = mipLevels/2; // TODO add key event to show mipLevels
+        samplerInfo.minLod = mipLevels;
+        samplerInfo.maxLod = mipLevels;
+
         if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");
         }
     }
 
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-                     VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory) {
+    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling,
+                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image,
+                     VkDeviceMemory &imageMemory) {
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -997,6 +1087,7 @@ private:
         imageInfo.usage = usage;
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.mipLevels = mipLevels;
 
         if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create image!");
@@ -1017,7 +1108,8 @@ private:
         vkBindImageMemory(device, image, imageMemory, 0);
     }
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+                               uint32_t mipLevels) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
         VkImageMemoryBarrier barrier = {};
@@ -1029,7 +1121,7 @@ private:
         barrier.image = image;
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.levelCount = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
 
@@ -1167,7 +1259,7 @@ private:
 
     void loadModel() {
 
-	    tinyobj::attrib_t attrib;
+        tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
@@ -1176,7 +1268,7 @@ private:
             throw std::runtime_error(warn + err);
         }
 
-        std::unordered_map<Vertex, uint32_t > uniqueVertices;
+        std::unordered_map<Vertex, uint32_t> uniqueVertices;
 
         for (const auto &shape : shapes) {
             for (const auto &index : shape.mesh.indices) {
@@ -1188,29 +1280,29 @@ private:
                         attrib.vertices[3 * index.vertex_index + 1]
                 };
 
-                if( attrib.normals.empty() ) {
-	                throw std::runtime_error("Model has no normals!");
+                if (attrib.normals.empty()) {
+                    throw std::runtime_error("Model has no normals!");
                 }
 
-	            vertex.normal = {
-                    attrib.normals[3 * index.normal_index + 0],
-                    attrib.normals[3 * index.normal_index + 2],
-                    attrib.normals[3 * index.normal_index + 1]
+                vertex.normal = {
+                        attrib.normals[3 * index.normal_index + 0],
+                        attrib.normals[3 * index.normal_index + 2],
+                        attrib.normals[3 * index.normal_index + 1]
                 };
 
-	            vertex.texCoord = {
+                vertex.texCoord = {
                         attrib.texcoords[2 * index.texcoord_index + 0],
                         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
                 };
 
-	            vertex.color = {1.0f, 1.0f, 1.0f};
+                vertex.color = {1.0f, 1.0f, 1.0f};
 
-	            if (uniqueVertices.count(vertex) == 0) {
+                if (uniqueVertices.count(vertex) == 0) {
                     uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
                     vertices.push_back(vertex);
                 }
 
-	            indices.push_back(static_cast<unsigned int &&>(uniqueVertices[vertex]));
+                indices.push_back(static_cast<unsigned int &&>(uniqueVertices[vertex]));
             }
         }
     }
@@ -1313,17 +1405,15 @@ private:
 
         UniformBufferObject ubo = {};
 
-        //auto flip = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // upright fighter
-        //flip = flip * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         auto rotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.model = rotation;
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        // Entfernung der Kamera zum Objekt
+        // Distance of view camera to the object.
         ubo.proj = glm::perspective(glm::radians(60.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
                                     10.0f);
         ubo.proj[1][1] *= -1;
 
-        ubo.lightPosition = glm::vec3(0,3,1);
+        ubo.lightPosition = glm::vec3(0, 3, 1);
 
         void *data;
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -1505,7 +1595,7 @@ private:
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
-        // uint32 to char cast, because spearV is always 32bit per instruction
+        // uint32_t to char cast, because spirV is always 32 Bit per instruction.
         createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
         VkShaderModule shaderModule;
@@ -1693,18 +1783,18 @@ private:
     }
 
     static std::vector<char> readFile(const std::string &filename) {
-        //read from end to know how large the file is
+        // Read from end to know how large the file is.
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open file " + filename + "!");
         }
 
-        //get filesize
+        // Get filesize.
         size_t fileSize = (size_t) file.tellg();
         std::vector<char> buffer(fileSize);
 
-        file.seekg(0); //go back to start of the file to read it
+        file.seekg(0); // Go back to start of the file to read it.
         file.read(buffer.data(), fileSize);
 
         file.close();
