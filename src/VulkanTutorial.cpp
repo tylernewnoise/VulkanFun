@@ -135,21 +135,32 @@ struct UniformBufferObject {
 class InteractiveState {
 
     static float rotation;
+    static float distance;
 
 public:
     static bool rotate;
 
     static float get_rotation(float to_add);
+    static float get_distance();
+    static void set_distance(float to_add);
 };
 
 bool InteractiveState::rotate = false;
 float InteractiveState::rotation = 0.0f;
+float InteractiveState::distance = 40.0f;
 
 float InteractiveState::get_rotation(float to_add = 0.0f) {
     InteractiveState::rotation += to_add;
     return glm::radians(InteractiveState::rotation);
 }
 
+float InteractiveState::get_distance() {
+    return glm::radians(InteractiveState::distance);
+}
+
+void InteractiveState::set_distance(float to_add) {
+    InteractiveState::distance += to_add;
+}
 
 class VulkanTutorial {
 public:
@@ -240,8 +251,17 @@ private:
 
     // Callback if key is pressed.
     static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-        if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+        if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
             InteractiveState::rotate = !InteractiveState::rotate;
+        }
+
+        if (key == GLFW_KEY_KP_ADD  && action == GLFW_PRESS) {
+            InteractiveState::set_distance(10.0f);
+        }
+
+        if (key == GLFW_KEY_KP_SUBTRACT  && action == GLFW_PRESS) {
+            InteractiveState::set_distance(-10.0f);
+        }
     }
 
     // Windows are handled by glfw library.
@@ -1036,8 +1056,8 @@ private:
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = 0;
-        // samplerInfo.minLod = mipLevels/2.0f; TODO change mipmap level by keypress
+        samplerInfo.minLod = 0.0f;
+        //samplerInfo.minLod = mipLevels/2.0f; //TODO change mipmap level by keypress
         samplerInfo.maxLod = 0.0f;
 
         if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
@@ -1386,7 +1406,7 @@ private:
         }
         ubo.model = rotation;
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
+        ubo.proj = glm::perspective(InteractiveState::get_distance(), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
                                     10.0f);
         ubo.proj[1][1] *= -1;
 

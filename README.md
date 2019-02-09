@@ -54,4 +54,6 @@ If everything went well you should see a rotating gun or a Star Wars Naboo fight
 * [Sascha Willems](https://github.com/SaschaWillems/Vulkan)
 * [gun model](https://free3d.com/3d-model/45-acp-smith-and-wesson-13999.html)
 
+# TODO
 
+http://kylehalladay.com/blog/tutorial/vulkan/2017/08/13/Vulkan-Uniform-Buffers.html
