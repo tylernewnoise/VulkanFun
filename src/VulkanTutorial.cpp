@@ -137,6 +137,7 @@ class InteractiveState {
 
 public:
     static bool rotate;
+    static bool light;
 
     static float get_rotation(float to_add);
 
@@ -146,6 +147,7 @@ public:
 };
 
 bool InteractiveState::rotate = false;
+bool InteractiveState::light = false;
 float InteractiveState::rotation = 0.0f;
 float InteractiveState::distance = 40.0f;
 
@@ -273,6 +275,10 @@ private:
             InteractiveState::rotate = !InteractiveState::rotate;
         }
 
+        if (key == GLFW_KEY_L && action == GLFW_PRESS){
+            InteractiveState::light =!InteractiveState::light;
+        }
+
         if (key == GLFW_KEY_KP_ADD && action == GLFW_PRESS) {
             InteractiveState::set_distance(10.0f);
         }
@@ -299,6 +305,7 @@ private:
         createDepthResources();
         createFramebuffers();
         createTextureImage();
+        //createNormalImage();
         createTextureImageView();
         createTextureSampler();
         loadModel();
@@ -1294,7 +1301,7 @@ private:
         UniformBufferObject ubo = {};
         auto rotation = glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(), glm::vec3(0.0f, 0.0f, 1.0f));
         if (InteractiveState::rotate) {
-            rotation = glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(0.01f), glm::vec3(0.0f, 0.0f, 1.0f));
+            rotation = glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(0.2f), glm::vec3(0.0f, 0.0f, 1.0f));
         }
         ubo.model = rotation;
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -1303,7 +1310,9 @@ private:
                                     10.0f);
         ubo.proj[1][1] *= -1;
 
-        ubo.lightPosition = glm::vec3(0, 3, 1);
+        if (InteractiveState::light){
+            ubo.lightPosition = glm::vec3(0, 3, 1);
+        }
 
         void *data;
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
