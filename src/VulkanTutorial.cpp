@@ -139,7 +139,9 @@ public:
     static bool rotate;
 
     static float get_rotation(float to_add);
+
     static float get_distance();
+
     static void set_distance(float to_add);
 };
 
@@ -155,6 +157,7 @@ float InteractiveState::get_rotation(float to_add = 0.0f) {
 float InteractiveState::get_distance() {
     return glm::radians(InteractiveState::distance);
 }
+
 void InteractiveState::set_distance(float to_add) {
     InteractiveState::distance += to_add;
 }
@@ -948,9 +951,9 @@ private:
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = mipLevels;
-        //samplerInfo.minLod = mipLevels/2.0f; //TODO change mipmap level by keypress
-        samplerInfo.maxLod = 0.0f;
+        samplerInfo.minLod = 0;
+        //samplerInfo.maxLod = mipLevels/2.0f; //TODO change mipmap level of detail by keypress
+        samplerInfo.maxLod = mipLevels;
 
         if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");
@@ -1284,7 +1287,6 @@ private:
         createColorResources();
         createDepthResources();
         createFramebuffers();
-        createTextureSampler();
         createCommandBuffers();
     }
 
