@@ -29,5 +29,4 @@ void main()
     fragNormal = mat3(ubo.model) * inNormal;
     fragViewVec = (ubo.view * worldPos).xyz;
     fragLightVec = ubo.lightPosition - vec3(worldPos);
-
 }
