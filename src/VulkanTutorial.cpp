@@ -278,11 +278,11 @@ private:
             InteractiveState::rotate = !InteractiveState::rotate;
         }
 
-        if (key == GLFW_KEY_KP_ADD && action == GLFW_PRESS) {
+        if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
             InteractiveState::set_distance(10.0f);
         }
 
-        if (key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS) {
+        if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
             InteractiveState::set_distance(-10.0f);
         }
     }
