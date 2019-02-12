@@ -1,13 +1,13 @@
 # Vulkan Tutorial
 
-This is heavily based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy. It loads a 3D Model from a obj-file, puts a texture on it and applies [Phong Shading](https://en.wikipedia.org/wiki/Shading#Phong_shading).
+This is heavily based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy.        vkFreeMemory(device, textureImageMemory, nullptr);        vkFreeMemory(device, textureImageMemory, nullptr); 
 
 ### General
 
-Since I build this completely in Linux I can't assure it will run on Windows or OSX. But shouldn't be too hard to modify the project to your OS.
+Since this is build completely in Linux it can't be assured it will run on Windows or OSX. But shouldn't be too hard to modify the project to your OS.
 
 #### Dependencies
-In order to build and run this, you'll need the following libraries and SDKs. As mentioned above this was built on Linux, specifically on ArchLinux, so I can provide hints only for this distribution:
+In order to build and run this, you'll need the following libraries and SDKs. As mentioned above this was built on Linux, specifically on ArchLinux, so hints can be provided only for this distribution:
 * A Vulkan compatible graphics card and drivers. Refer to your OS and vendor for how-to install them. For ArchLinux it should be this:
   * ```$ sudo pacman -S vulkan-intel``` for Intel graphics (in my case)
   * ```$ sudo pacman -S vulkan-radeon``` for Radeon cards
@@ -42,7 +42,7 @@ $ ./compileShaders.sh
 
 ```$ ./VulkanTut```
 
-If everything went well you should see the earth or a gun (see below for example screenshots)
+If everything went well you should see the earth or a gun (see below for example screenshots).
 
 * Interactions:
     * 'l' turns the light on/off.
@@ -61,10 +61,10 @@ The example has implemented the following features (even though they are not _vi
 * [Mipmaps](https://en.wikipedia.org/wiki/Mipmap)
 * [MultiSample AntiAliasing](https://en.wikipedia.org/wiki/Multisample_anti-aliasing)
 * [Sample Shading](https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#primsrast-sampleshading)
-* [Normal Maps](https://en.wikipedia.org/wiki/Normal_mapping) (buggy)
+* [Normal Maps](https://en.wikipedia.org/wiki/Normal_mapping)
 
 #### Bugs
-* Memory leakage when closing the application.
+* None known (which doesn't mean that there are none!)
 
 #### Credits, resources, inspirations
 
@@ -78,9 +78,8 @@ The example has implemented the following features (even though they are not _vi
 * [vulkan cookbook](https://github.com/PacktPublishing/Vulkan-Cookbook)
 
 #### TODO
-* fix bugs
 * http://kylehalladay.com/blog/tutorial/vulkan/2017/08/13/Vulkan-Uniform-Buffers.html
-* PushConstants
+* PushConstants, Spitsceens, Instances, Shadows and so much more....
 * refactor to a less rigid structure
 
 #### Screenshots
