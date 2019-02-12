@@ -14,8 +14,10 @@ In order to build and run this, you'll need the following libraries and SDKs. As
   * Nvidia should have Vulkan support in their proprietary driver, which should be ```$ sudo pacman -S nvidia-utils```.
 * The Vulkan SDK ```$ sudo pacman -S vulkan-devel```
 * [GLFW Library](https://www.glfw.org/) ```$ sudo pacman -S glfw-x11```
-* [GLSL](https://www.khronos.org/registry/OpenGL/index_gl.php) ```$ sudo pacman -S glslang```
+* [GLSL](https://github.com/KhronosGroup/glslang) ```$ sudo pacman -S glslang```
 * [GLM](https://glm.g-truc.net/0.9.9/index.html ) ```$ sudo pacman -S glm```
+* [cmake](cmake.org) version >3.10
+* g++ version >7.3.0
  
 #### Build and run
 * Clone the project:
@@ -40,17 +42,16 @@ $ ./compileShaders.sh
 
 ```$ ./VulkanTut```
 
-If everything went well you should see the earth.
-![galaxy_texure](screenshot.png)
+If everything went well you should see the earth or a gun (see below for example screenshots)
 
 * Interactions:
-    * l turns the light on/off.
-    * spacebar starts/stops rotation
-    * up/down moves the camera to/away from object
+    * 'l' turns the light on/off.
+    * 'spacebar' starts/stops rotation
+    * 'up/down' moves the camera to/away from object
 
 #### Accomplishments
 
-The example has implemented the following features:
+The example has implemented the following features (even though they are not _visible_):
 * loading a 3D model
 * loading a texture
 * loading vertex and fragment shaders
@@ -63,8 +64,7 @@ The example has implemented the following features:
 * [Normal Maps](https://en.wikipedia.org/wiki/Normal_mapping) (buggy)
 
 #### Bugs
-* Some memory leakage when closing the application
-* Something is wrong with the Normal Mapping as it has a blueish light
+* Memory leakage when closing the application.
 
 #### Credits, resources, inspirations
 
@@ -77,9 +77,12 @@ The example has implemented the following features:
 * [earth model](https://free3d.com/3d-model/planet-earth-99065.html)
 * [vulkan cookbook](https://github.com/PacktPublishing/Vulkan-Cookbook)
 
-### TODO
-
+#### TODO
 * fix bugs
 * http://kylehalladay.com/blog/tutorial/vulkan/2017/08/13/Vulkan-Uniform-Buffers.html
 * PushConstants
-* 
+* refactor to a less rigid structure
+
+#### Screenshots
+![gun](earth.png)
+![gun](gun.png)
