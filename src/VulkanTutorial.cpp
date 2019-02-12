@@ -137,6 +137,7 @@ class InteractiveState {
 
 public:
     static bool rotate;
+    static bool light;
 
     static float get_rotation(float to_add);
 
@@ -145,6 +146,7 @@ public:
     static void set_distance(float to_add);
 };
 
+bool InteractiveState::light =  false;
 bool InteractiveState::rotate = false;
 float InteractiveState::rotation = 0.0f;
 float InteractiveState::distance = 40.0f;
@@ -186,6 +188,10 @@ private:
     const std::string MODEL_PATH = "../data/models/earth.obj";
     const std::string TEXTURE_PATH = "../data/textures/earth.jpg";
     const std::string NORMAL_TEXTURE_PATH = "../data/textures/earth_normal.jpg";
+
+    //const std::string MODEL_PATH = "../data/models/gun.obj";
+    //const std::string TEXTURE_PATH = "../data/textures/gun.jpg";
+    //const std::string NORMAL_TEXTURE_PATH = "../data/textures/gun_normaljpg";
 
     GLFWwindow *window{};
 
@@ -276,6 +282,10 @@ private:
     static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
             InteractiveState::rotate = !InteractiveState::rotate;
+        }
+
+        if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+            InteractiveState::light= !InteractiveState::light;
         }
 
         if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
@@ -1015,8 +1025,7 @@ private:
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0;
-        //samplerInfo.maxLod = mipLevels/2.0f; //TODO change mipmap level of detail by keypress
-        samplerInfo.maxLod = mipLevels;
+        samplerInfo.maxLod = mipLevels; //TODO change mipmap level of detail by keypress
 
         if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");
@@ -1306,7 +1315,6 @@ private:
             }
         }
     }
-
     /*********************** initVulkan() Functions ***************************/
 
     void drawFrame() {
@@ -1400,7 +1408,9 @@ private:
                                     10.0f);
         ubo.proj[1][1] *= -1;
 
-        ubo.lightPosition = glm::vec3(0, 3, 1);
+        if (InteractiveState::light) {
+            ubo.lightPosition = glm::vec3(0, 3, 1);
+        }
 
         void *data;
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
