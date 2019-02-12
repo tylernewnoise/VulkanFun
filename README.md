@@ -1,5 +1,6 @@
 # Vulkan Tutorial
 
+This is heavily based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy.
 
 ### General
 
