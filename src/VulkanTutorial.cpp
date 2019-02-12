@@ -31,8 +31,8 @@
 #include <vector>
 
 
-const int WIDTH = 800;
-const int HEIGHT = 600;
+const int WIDTH = 1280;
+const int HEIGHT = 1024;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
@@ -191,7 +191,7 @@ private:
 
     //const std::string MODEL_PATH = "../data/models/gun.obj";
     //const std::string TEXTURE_PATH = "../data/textures/gun.jpg";
-    //const std::string NORMAL_TEXTURE_PATH = "../data/textures/gun_normaljpg";
+    //const std::string NORMAL_TEXTURE_PATH = "../data/textures/gun_normal.jpg";
 
     GLFWwindow *window{};
 
