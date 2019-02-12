@@ -1,6 +1,6 @@
 # Vulkan Tutorial
 
-This is completly based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy. It loads a 3D Model from a obj-file, puts a texture on it and applies [Phong Shading](https://en.wikipedia.org/wiki/Shading#Phong_shading).
+This is heavily based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy. It loads a 3D Model from a obj-file, puts a texture on it and applies [Phong Shading](https://en.wikipedia.org/wiki/Shading#Phong_shading).
 
 ### General
 
@@ -18,7 +18,6 @@ In order to build and run this, you'll need the following libraries and SDKs. As
 * [GLM](https://glm.g-truc.net/0.9.9/index.html ) ```$ sudo pacman -S glm```
  
 #### Build and run
-
 * Clone the project:
 
 ```git clone https://github.com/tylernewnoise/VulkanTutorial.git```
@@ -41,19 +40,46 @@ $ ./compileShaders.sh
 
 ```$ ./VulkanTut```
 
-If everything went well you should see a rotating gun or a Star Wars Naboo fighter.
+If everything went well you should see the earth.
 ![galaxy_texure](screenshot.png)
 
-#### Credits and resources
+* Interactions:
+    * l turns the light on/off.
+    * spacebar starts/stops rotation
+    * up/down moves the camera to/away from object
 
-* [of course](https://vulkan-tutorial.com)
+#### Accomplishments
+
+The example has implemented the following features:
+* loading a 3D model
+* loading a texture
+* loading vertex and fragment shaders
+* resizable window
+* depth buffering
+* [Phong shading](https://en.wikipedia.org/wiki/Phong_shading)
+* [Mipmaps](https://en.wikipedia.org/wiki/Mipmap)
+* [MultiSample AntiAliasing](https://en.wikipedia.org/wiki/Multisample_anti-aliasing)
+* [Sample Shading](https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#primsrast-sampleshading)
+* [Normal Maps](https://en.wikipedia.org/wiki/Normal_mapping) (buggy)
+
+#### Bugs
+* Some memory leakage when closing the application
+* Something is wrong with the Normal Mapping as it has a blueish light
+
+#### Credits, resources, inspirations
+
+* [vulkan tutorial](https://vulkan-tutorial.com)
 * brotcrunshers [youtube tutorial](https://www.youtube.com/watch?v=mzVFHEmnRLg&index=1&list=PL58qjcU5nk8uH9mmlASm4SFy1yuPzDAH0)
-* Picture of galaxy from [here](https://www.flickr.com/photos/nasacommons/9467311154/in/photolist-fqArLE-bTceKc-8phfAM-npPhJ7-bTcCAt-r8td3y-bEha9y-fq2Sbf-bEha4f-r9nNFv-fqmbDn-8pkquq-bTcmwH-bEhcEN-bEhemC-bEhagb-otWLAH-qRWXqx-bEhfpJ-bTcfYn-bTcuj6-bEhVV5-8cJQMe-bTcBMc-bEhVUu-bEhCa5-do6zvq-bTbVRZ-btKxwX-npPh5b-bTcFfF-bEheEA-bEhWDj-fq17jY-qR79LP-bTbTSr-bTce3n-fpNgdH-bTcfYB-dCrz1Z-fq3kMf-bEhWkE-fqAYHf-Lct2bP-ZnqK2r-7hKa3t-QdxXBq-qR19hL-bTbVX8-i54VDR)
 * [stb](https://github.com/nothings/stb) image library
-* [tinyobjloader](https://github.com/syoyo/tinyobjloader)
+* [tinyobjloader](https://github.com/syoyo/tinyobjloader) object loader
 * [Sascha Willems](https://github.com/SaschaWillems/Vulkan)
 * [gun model](https://free3d.com/3d-model/45-acp-smith-and-wesson-13999.html)
+* [earth model](https://free3d.com/3d-model/planet-earth-99065.html)
+* [vulkan cookbook](https://github.com/PacktPublishing/Vulkan-Cookbook)
 
-# TODO
+### TODO
 
-http://kylehalladay.com/blog/tutorial/vulkan/2017/08/13/Vulkan-Uniform-Buffers.html
+* fix bugs
+* http://kylehalladay.com/blog/tutorial/vulkan/2017/08/13/Vulkan-Uniform-Buffers.html
+* PushConstants
+* 
