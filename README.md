@@ -1,23 +1,34 @@
 # Vulkan Tutorial
 
-This is heavily based on [this tutorial](https://vulkan-tutorial.com), all hail goes to this guy.
+This is heavily based on [this tutorial](https://vulkan-tutorial.com), all hail 
+goes to this guy. Sry for 2k lines in one file.
 
 ### General
 
-Since this is build completely in Linux it can't be assured it will run on Windows or OSX. But shouldn't be too hard to modify the project to your OS.
+Since this is build completely in Linux it can't be assured it will run on 
+Windows or OSX. But shouldn't be too hard to modify the project to your OS.
 
 #### Dependencies
-In order to build and run this, you'll need the following libraries and SDKs. As mentioned above this was built on Linux, specifically on ArchLinux, so hints can be provided only for this distribution:
-* A Vulkan compatible graphics card and drivers. Refer to your OS and vendor for how-to install them. For ArchLinux it should be this:
+In order to build and run this, you'll need the following libraries and SDKs. 
+As mentioned above this was built on Linux, specifically on ArchLinux. You need
+to install:
+* A Vulkan compatible graphics card and drivers. Refer to your OS and vendor for 
+  how-to install them. For ArchLinux it should be this:
   * ```$ sudo pacman -S vulkan-intel``` for Intel graphics (in my case)
   * ```$ sudo pacman -S vulkan-radeon``` for Radeon cards
-  * Nvidia should have Vulkan support in their proprietary driver, which should be ```$ sudo pacman -S nvidia-utils```.
+  * Nvidia should have Vulkan support in their proprietary driver, which should 
+    be ```$ sudo pacman -S nvidia-utils```.
 * The Vulkan SDK ```$ sudo pacman -S vulkan-devel```
 * [GLFW Library](https://www.glfw.org/) ```$ sudo pacman -S glfw-x11```
 * [GLSL](https://github.com/KhronosGroup/glslang) ```$ sudo pacman -S glslang```
 * [GLM](https://glm.g-truc.net/0.9.9/index.html ) ```$ sudo pacman -S glm```
 * [cmake](cmake.org) version >3.10
 * g++ version >7.3.0
+
+For Ubuntu 20.04 one hast to install these packages:
+```console
+sudo apt-get install libglfw3-dev libglm-dev glslang-dev glslang-tools libvulkan-dev vulkan-tools libvulkan-dev vulkan-validation-layers-dev
+```
  
 #### Build and run
 * Clone the project:
@@ -42,16 +53,18 @@ $ ./compileShaders.sh
 
 ```$ ./VulkanTut```
 
-If everything went well you should see the earth or a gun (see below for example screenshots).
+If everything went well you should see the earth or a gun (see below for 
+example screenshots).
 
 * Interactions:
-    * 'l' turns the light on/off.
+    * 'l' turns the light on/off
     * 'spacebar' starts/stops rotation
     * 'up/down' moves the camera to/away from object
 
 #### Accomplishments
 
-The example has implemented the following features (even though they are not _visible_):
+The example has implemented the following features (even though they are not 
+_visible_):
 * loading a 3D model
 * loading a texture
 * loading vertex and fragment shaders
@@ -64,7 +77,8 @@ The example has implemented the following features (even though they are not _vi
 * [Normal Maps](https://en.wikipedia.org/wiki/Normal_mapping)
 
 #### Bugs
-* None known (which doesn't mean that there are none!)
+* ~~None known (which doesn't mean that there are none!)~~
+* Textures are mirrored.
 
 #### Credits, resources, inspirations
 
@@ -79,8 +93,9 @@ The example has implemented the following features (even though they are not _vi
 
 #### TODO
 * http://kylehalladay.com/blog/tutorial/vulkan/2017/08/13/Vulkan-Uniform-Buffers.html
-* PushConstants, Spitsceens, Instances, Shadows and so much more....
+* PushConstants, Splitsceens, Instances, Shadows and so much more....
 * refactor to a less rigid structure
+* provide a UI for easy model/feature switching
 
 #### Screenshots
 ![gun](earth.png)
