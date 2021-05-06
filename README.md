@@ -34,7 +34,7 @@ sudo apt-get install libglfw3-dev libglm-dev glslang-dev glslang-tools libvulkan
 * Clone the project:
 
 ```git clone https://github.com/tylernewnoise/VulkanTutorial.git```
-* Build the shaders:
+* ~~Build the shaders:~~
 ```
 $ cd VulkanTutorial
 $ cd data/shaders
@@ -93,7 +93,7 @@ _visible_):
 
 #### TODO
 * http://kylehalladay.com/blog/tutorial/vulkan/2017/08/13/Vulkan-Uniform-Buffers.html
-* PushConstants, Splitsceens, Instances, Shadows and so much more....
+* PushConstants, Splitscreens, Instances, Shadows and so much more....
 * refactor to a less rigid structure
 * provide a UI for easy model/feature switching
 
