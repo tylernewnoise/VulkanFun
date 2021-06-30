@@ -700,8 +700,8 @@ class VulkanTutorial {
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.srcAccessMask = 0;
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
     std::array<VkAttachmentDescription, 3> attachments = {
         colorAttachment, depthAttachment, colorAttachmentResolve};
@@ -1077,16 +1077,15 @@ class VulkanTutorial {
 
     stbi_image_free(pixels_normal);
 
-    createImage(static_cast<uint32_t>(texWidth),
-                static_cast<uint32_t>(texHeight), 1, VK_SAMPLE_COUNT_1_BIT,
-                VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                    VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImageNormal,
-                textureImageMemoryNormal);
+    createImage(
+        static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1,
+        VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+            VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImageNormal,
+        textureImageMemoryNormal);
 
-    transitionImageLayout(textureImageNormal, VK_FORMAT_R8G8B8A8_UNORM,
+    transitionImageLayout(textureImageNormal, VK_FORMAT_R8G8B8A8_SRGB,
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
     copyBufferToImage(stagingBuffer, textureImageNormal,
@@ -1099,11 +1098,14 @@ class VulkanTutorial {
 
   void createTextureImageViewNormal() {
     textureImageViewNormal =
-        createImageView(textureImageNormal, VK_FORMAT_R8G8B8A8_UNORM,
+        createImageView(textureImageNormal, VK_FORMAT_R8G8B8A8_SRGB,
                         VK_IMAGE_ASPECT_COLOR_BIT, 1);
   }
 
   void createTextureSampler() {
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -1112,7 +1114,7 @@ class VulkanTutorial {
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = 16;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
@@ -1121,7 +1123,7 @@ class VulkanTutorial {
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0;
     samplerInfo.maxLod =
-        mipLevels;  // TODO change mipmap level of detail by keypress
+        (float)mipLevels;  // TODO change mipmap level detail by key
 
     if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) !=
         VK_SUCCESS) {
@@ -1526,16 +1528,16 @@ class VulkanTutorial {
     UniformBufferObject ubo = {};
     auto rotation =
         glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(),
-                    glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::vec3(0.0f, 0.2f, 0.0f));
     if (InteractiveState::rotate) {
       rotation =
           glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(0.07f),
-                      glm::vec3(0.0f, 0.0f, 1.0f));
+                      glm::vec3(0.0f, 0.2f, 0.0f));
     }
     ubo.model = rotation;
     ubo.view =
         glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                    glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.proj = glm::perspective(
         InteractiveState::get_distance(),
         swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
@@ -1734,13 +1736,8 @@ class VulkanTutorial {
 
   static VkSurfaceFormatKHR chooseSwapSurfaceFormat(
       const std::vector<VkSurfaceFormatKHR> &availableFormats) {
-    if (availableFormats.size() == 1 &&
-        availableFormats[0].format == VK_FORMAT_UNDEFINED) {
-      return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-    }
-
     for (const auto &availableFormat : availableFormats) {
-      if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+      if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
           availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
         return availableFormat;
       }
@@ -1796,7 +1793,7 @@ class VulkanTutorial {
     viewInfo.format = format;
     viewInfo.subresourceRange.aspectMask = aspectFlags;
     viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = mipLevels;
+    viewInfo.subresourceRange.levelCount = mip_levels;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
@@ -1953,7 +1950,7 @@ class VulkanTutorial {
       barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     }
     barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = mipLevels;
+    barrier.subresourceRange.levelCount = mip_levels;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
