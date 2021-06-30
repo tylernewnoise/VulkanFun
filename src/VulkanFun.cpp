@@ -14,6 +14,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "external/stb_image.h"
+#include "include/vertex.h"
+#include "include/interactivestate.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 
@@ -70,60 +72,9 @@ struct SwapChainSupportDetails {
   std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct Vertex {
-  glm::vec3 pos;
-  glm::vec3 color;
-  glm::vec2 texCoord;
-  glm::vec3 normal;
-
-  // Provides comparability for Hashmap
-  bool operator==(const Vertex &other) const {
-    return pos == other.pos && color == other.color &&
-           texCoord == other.texCoord && normal == other.normal;
-  }
-
-  static VkVertexInputBindingDescription getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription = {};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    return bindingDescription;
-  }
-
-  static std::array<VkVertexInputAttributeDescription, 4>
-  getAttributeDescriptions() {
-    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset =
-        static_cast<uint32_t>(offsetof(Vertex, pos));
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset =
-        static_cast<uint32_t>(offsetof(Vertex, color));
-
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[2].offset =
-        static_cast<uint32_t>(offsetof(Vertex, texCoord));
-
-    attributeDescriptions[3].binding = 0;
-    attributeDescriptions[3].location = 3;
-    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[3].offset =
-        static_cast<uint32_t>(offsetof(Vertex, normal));
-
-    return attributeDescriptions;
-  }
-};
-
 template <>
-struct std::hash<Vertex> {
-  size_t operator()(Vertex const &vertex) const {
+struct std::hash<vertex::Vertex> {
+  size_t operator()(vertex::Vertex const &vertex) const {
     return ((hash<glm::vec3>()(vertex.pos) ^
              (hash<glm::vec3>()(vertex.color) << 1)) >>
             1) ^
@@ -138,40 +89,9 @@ struct UniformBufferObject {
   glm::vec3 lightPosition;
 };
 
-class InteractiveState {
-  static float rotation;
-  static float distance;
 
- public:
-  static bool rotate;
-  static bool light;
 
-  static float get_rotation(float to_add);
-
-  static float get_distance();
-
-  static void set_distance(float to_add);
-};
-
-bool InteractiveState::light = false;
-bool InteractiveState::rotate = false;
-float InteractiveState::rotation = 0.0f;
-float InteractiveState::distance = 40.0f;
-
-float InteractiveState::get_rotation(float to_add = 0.0f) {
-  InteractiveState::rotation += to_add;
-  return glm::radians(InteractiveState::rotation);
-}
-
-float InteractiveState::get_distance() {
-  return glm::radians(InteractiveState::distance);
-}
-
-void InteractiveState::set_distance(float to_add) {
-  InteractiveState::distance += to_add;
-}
-
-class VulkanTutorial {
+class VulkanFun {
  public:
   void run() {
     initWindow();
@@ -245,7 +165,7 @@ class VulkanTutorial {
 
   VkCommandPool commandPool{};
 
-  std::vector<Vertex> vertices;
+  std::vector<vertex::Vertex> vertices;
   std::vector<uint32_t> indices;
   VkBuffer vertexBuffer{};
   VkDeviceMemory vertexBufferMemory{};
@@ -282,7 +202,7 @@ class VulkanTutorial {
   static void framebufferResizeCallback(GLFWwindow *window, int width,
                                         int height) {
     auto app =
-        reinterpret_cast<VulkanTutorial *>(glfwGetWindowUserPointer(window));
+        reinterpret_cast<VulkanFun *>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
   }
 
@@ -290,19 +210,19 @@ class VulkanTutorial {
   static void key_callback(GLFWwindow *window, int key, int scancode,
                            int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-      InteractiveState::rotate = !InteractiveState::rotate;
+      interactivestate::InteractiveState::rotate = !interactivestate::InteractiveState::rotate;
     }
 
     if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-      InteractiveState::light = !InteractiveState::light;
+      interactivestate::InteractiveState::light = !interactivestate::InteractiveState::light;
     }
 
     if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
-      InteractiveState::set_distance(10.0f);
+      interactivestate::InteractiveState::set_distance(10.0f);
     }
 
     if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
-      InteractiveState::set_distance(-10.0f);
+      interactivestate::InteractiveState::set_distance(-10.0f);
     }
   }
   /*************************** GLFW Window Handling *************************/
@@ -436,9 +356,9 @@ class VulkanTutorial {
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "VulkanTutorial";
+    appInfo.pApplicationName = "VulkanFun";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "VulkanTutorialEngine";
+    appInfo.pEngineName = "VulkanFunEngine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
@@ -788,8 +708,8 @@ class VulkanTutorial {
     // Fixed functions in pipeline.
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    auto bindingDescription = vertex::Vertex::getBindingDescription();
+    auto attributeDescriptions = vertex::Vertex::getAttributeDescriptions();
 
     vertexInputInfo.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -1167,11 +1087,11 @@ class VulkanTutorial {
       throw std::runtime_error(warn + err);
     }
 
-    std::unordered_map<Vertex, uint32_t> uniqueVertices;
+    std::unordered_map<vertex::Vertex, uint32_t> uniqueVertices;
 
     for (const auto &shape : shapes) {
       for (const auto &index : shape.mesh.indices) {
-        Vertex vertex = {};
+        vertex::Vertex vertex = {};
 
         vertex.pos = {attrib.vertices[3 * index.vertex_index + 0],
                       attrib.vertices[3 * index.vertex_index + 1],
@@ -1268,7 +1188,6 @@ class VulkanTutorial {
   void createDescriptorPool() {
     std::array<VkDescriptorPoolSize, 3> poolSizes = {};
 
-    VkDescriptorPoolSize poolSize = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount =
         static_cast<uint32_t>(swapChainImages.size());
@@ -1527,11 +1446,11 @@ class VulkanTutorial {
   void updateUniformBuffer(uint32_t currentImage) {
     UniformBufferObject ubo = {};
     auto rotation =
-        glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(),
+        glm::rotate(glm::mat4(1.0f), interactivestate::InteractiveState::get_rotation(),
                     glm::vec3(0.0f, 0.2f, 0.0f));
-    if (InteractiveState::rotate) {
+    if (interactivestate::InteractiveState::rotate) {
       rotation =
-          glm::rotate(glm::mat4(1.0f), InteractiveState::get_rotation(0.07f),
+          glm::rotate(glm::mat4(1.0f), interactivestate::InteractiveState::get_rotation(0.07f),
                       glm::vec3(0.0f, 0.2f, 0.0f));
     }
     ubo.model = rotation;
@@ -1539,11 +1458,11 @@ class VulkanTutorial {
         glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                     glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.proj = glm::perspective(
-        InteractiveState::get_distance(),
+        interactivestate::InteractiveState::get_distance(),
         swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
 
-    if (InteractiveState::light) {
+    if (interactivestate::InteractiveState::light) {
       ubo.lightPosition = glm::vec3(0, 3, 1);
     }
 
@@ -2206,7 +2125,7 @@ class VulkanTutorial {
 };
 
 int main() {
-  VulkanTutorial app;
+  VulkanFun app;
 
   try {
     app.run();
