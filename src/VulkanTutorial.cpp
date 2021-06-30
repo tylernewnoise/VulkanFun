@@ -1030,14 +1030,14 @@ class VulkanTutorial {
             VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
     copyBufferToImage(stagingBuffer, textureImage,
                       static_cast<uint32_t>(texWidth),
                       static_cast<uint32_t>(texHeight));
 
-    generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight,
+    generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight,
                     mipLevels);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
@@ -1045,7 +1045,7 @@ class VulkanTutorial {
   }
 
   void createTextureImageView() {
-    textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+    textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
                                        VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
   }
 
@@ -1057,8 +1057,8 @@ class VulkanTutorial {
     auto imageSize = texWidth * texHeight * 4;
 
     if (!pixels_normal) {
-      throw std::runtime_error("Failed to load texture image " + TEXTURE_PATH +
-                               "!");
+      throw std::runtime_error("Failed to load normal texture image " +
+                               NORMAL_TEXTURE_PATH + "!");
     }
 
     VkBuffer stagingBuffer;
