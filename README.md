@@ -77,8 +77,8 @@ _visible_):
 * [Normal Maps](https://en.wikipedia.org/wiki/Normal_mapping)
 
 #### Bugs
-* ~~None known (which doesn't mean that there are none!)~~
-* Textures are mirrored.
+* None known (which doesn't mean that there are none!).
+* ~~Textures are mirrored.~~
 
 #### Credits, resources, inspirations
 
@@ -96,6 +96,7 @@ _visible_):
 * PushConstants, Splitscreens, Instances, Shadows and so much more....
 * refactor to a less rigid structure
 * provide a UI for easy model/feature switching
+* fix 100% GPU load
 
 #### Screenshots
 ![gun](earth.png)
