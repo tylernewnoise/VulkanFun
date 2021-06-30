@@ -48,7 +48,7 @@ endif ()
 include_directories(${GLM_INCLUDE_DIRS})
 include_directories($(GLFW_INCLUDE_DIRS))
 
-add_executable(VulkanTut src/VulkanTutorial.cpp external/stb_image.h external/tiny_obj_loader.h)
+add_executable(VulkanTut src/VulkanFun.cpp external/stb_image.h external/tiny_obj_loader.h)
 
 add_dependencies(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_format)
 add_dependencies(${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_NAME}_glslang)
