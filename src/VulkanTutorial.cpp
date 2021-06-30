@@ -22,16 +22,15 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
 #include <optional>
 #include <set>
 #include <unordered_map>
 #include <vector>
 
-const int WIDTH = 1280;
-const int HEIGHT = 1024;
-const int MAX_FRAMES_IN_FLIGHT = 2;
+constexpr int WIDTH = 1280;
+constexpr int HEIGHT = 1024;
+constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
@@ -60,7 +59,7 @@ struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
   std::optional<uint32_t> presentFamily;
 
-  bool isComplete() {
+  [[nodiscard]] bool isComplete() const {
     return graphicsFamily.has_value() && presentFamily.has_value();
   }
 };
@@ -503,9 +502,9 @@ class VulkanTutorial {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    for (const auto &device : devices) {
-      if (isDeviceSuitable(device)) {
-        physicalDevice = device;
+    for (const auto &dev : devices) {
+      if (isDeviceSuitable(dev)) {
+        physicalDevice = dev;
         msaaSamples = getMaxUsableSampleCount();
         break;
       }
@@ -517,11 +516,11 @@ class VulkanTutorial {
   }
 
   void createLogicalDevice() {
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices indics = findQueueFamilies(physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(),
-                                              indices.presentFamily.value()};
+    std::set<uint32_t> uniqueQueueFamilies = {indics.graphicsFamily.value(),
+                                              indics.presentFamily.value()};
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -564,8 +563,8 @@ class VulkanTutorial {
       throw std::runtime_error("Failed to create logical device!");
     }
 
-    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+    vkGetDeviceQueue(device, indics.graphicsFamily.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(device, indics.presentFamily.value(), 0, &presentQueue);
   }
 
   void createSwapChain() {
@@ -596,11 +595,11 @@ class VulkanTutorial {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
-                                     indices.presentFamily.value()};
+    QueueFamilyIndices indcs = findQueueFamilies(physicalDevice);
+    uint32_t queueFamilyIndices[] = {indcs.graphicsFamily.value(),
+                                     indcs.presentFamily.value()};
 
-    if (indices.graphicsFamily != indices.presentFamily) {
+    if (indcs.graphicsFamily != indcs.presentFamily) {
       createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       createInfo.queueFamilyIndexCount = 2;
       createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -1283,7 +1282,6 @@ class VulkanTutorial {
     poolInfo.poolSizeCount = poolSizes.size();
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
-    ;
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) !=
         VK_SUCCESS) {
@@ -1581,7 +1579,7 @@ class VulkanTutorial {
     return true;
   }
 
-  std::vector<const char *> getRequiredExtensions() {
+  static std::vector<const char *> getRequiredExtensions() {
     uint32_t glfwExtensionCount = 0;
     const char **glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -1604,32 +1602,32 @@ class VulkanTutorial {
     return VK_FALSE;
   }
 
-  bool isDeviceSuitable(VkPhysicalDevice device) {
-    QueueFamilyIndices indices = findQueueFamilies(device);
+  bool isDeviceSuitable(VkPhysicalDevice dev) {
+    QueueFamilyIndices indcs = findQueueFamilies(dev);
 
-    bool extensionsSupported = checkDeviceExtensionSupport(device);
+    bool extensionsSupported = checkDeviceExtensionSupport(dev);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-      SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+      SwapChainSupportDetails swapChainSupport = querySwapChainSupport(dev);
       swapChainAdequate = !swapChainSupport.formats.empty() &&
                           !swapChainSupport.presentModes.empty();
     }
 
     VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+    vkGetPhysicalDeviceFeatures(dev, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate &&
+    return indcs.isComplete() && extensionsSupported && swapChainAdequate &&
            supportedFeatures.samplerAnisotropy;
   }
 
-  bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+  bool checkDeviceExtensionSupport(VkPhysicalDevice dev) {
     uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+    vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount,
                                          nullptr);
 
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+    vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount,
                                          availableExtensions.data());
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(),
@@ -1671,72 +1669,70 @@ class VulkanTutorial {
     return VK_SAMPLE_COUNT_1_BIT;
   }
 
-  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
-    QueueFamilyIndices indices;
+  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice dev) {
+    QueueFamilyIndices indcs;
 
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
-                                             nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(dev, &queueFamilyCount, nullptr);
 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
+    vkGetPhysicalDeviceQueueFamilyProperties(dev, &queueFamilyCount,
                                              queueFamilies.data());
 
     int i = 0;
     for (const auto &queueFamily : queueFamilies) {
       if (queueFamily.queueCount > 0 &&
           queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-        indices.graphicsFamily = i;
+        indcs.graphicsFamily = i;
       }
 
       auto presentSupport = static_cast<VkBool32>(false);
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, static_cast<uint32_t>(i),
+      vkGetPhysicalDeviceSurfaceSupportKHR(dev, static_cast<uint32_t>(i),
                                            surface, &presentSupport);
 
       if (queueFamily.queueCount > 0 && presentSupport) {
-        indices.presentFamily = i;
+        indcs.presentFamily = i;
       }
 
-      if (indices.isComplete()) {
+      if (indcs.isComplete()) {
         break;
       }
 
       i++;
     }
 
-    return indices;
+    return indcs;
   }
 
-  SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
+  SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice dev) {
     SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface,
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(dev, surface,
                                               &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,
-                                         nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(dev, surface, &formatCount, nullptr);
 
     if (formatCount != 0) {
       details.formats.resize(formatCount);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,
+      vkGetPhysicalDeviceSurfaceFormatsKHR(dev, surface, &formatCount,
                                            details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,
-                                              &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(dev, surface, &presentModeCount,
+                                              nullptr);
 
     if (presentModeCount != 0) {
       details.presentModes.resize(presentModeCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(
-          device, surface, &presentModeCount, details.presentModes.data());
+      vkGetPhysicalDeviceSurfacePresentModesKHR(dev, surface, &presentModeCount,
+                                                details.presentModes.data());
     }
 
     return details;
   }
 
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+  static VkSurfaceFormatKHR chooseSwapSurfaceFormat(
       const std::vector<VkSurfaceFormatKHR> &availableFormats) {
     if (availableFormats.size() == 1 &&
         availableFormats[0].format == VK_FORMAT_UNDEFINED) {
@@ -1753,8 +1749,8 @@ class VulkanTutorial {
     return availableFormats[0];
   }
 
-  VkPresentModeKHR chooseSwapPresentMode(
-      const std::vector<VkPresentModeKHR> availablePresentModes) {
+  static VkPresentModeKHR chooseSwapPresentMode(
+      const std::vector<VkPresentModeKHR> &availablePresentModes) {
     VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
     for (const auto &availablePresentMode : availablePresentModes) {
@@ -1791,7 +1787,7 @@ class VulkanTutorial {
 
   VkImageView createImageView(VkImage image, VkFormat format,
                               VkImageAspectFlags aspectFlags,
-                              uint32_t mipLevels) {
+                              uint32_t mip_levels) {
     // Create imageviews (window in picture).
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1877,7 +1873,7 @@ class VulkanTutorial {
     return shaderModule;
   }
 
-  void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
+  void createImage(uint32_t width, uint32_t height, uint32_t mip_levels,
                    VkSampleCountFlagBits numSamples, VkFormat format,
                    VkImageTiling tiling, VkImageUsageFlags usage,
                    VkMemoryPropertyFlags properties, VkImage &image,
@@ -1888,7 +1884,7 @@ class VulkanTutorial {
     imageInfo.extent.width = width;
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = mipLevels;
+    imageInfo.mipLevels = mip_levels;
     imageInfo.arrayLayers = 1;
     imageInfo.format = format;
     imageInfo.tiling = tiling;
@@ -1936,7 +1932,7 @@ class VulkanTutorial {
 
   void transitionImageLayout(VkImage image, VkFormat format,
                              VkImageLayout oldLayout, VkImageLayout newLayout,
-                             uint32_t mipLevels) {
+                             uint32_t mip_levels) {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier = {};
@@ -2022,7 +2018,7 @@ class VulkanTutorial {
     return commandBuffer;
   }
 
-  bool hasStencilComponent(VkFormat format) {
+  static bool hasStencilComponent(VkFormat format) {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
            format == VK_FORMAT_D24_UNORM_S8_UINT;
   }
@@ -2094,7 +2090,7 @@ class VulkanTutorial {
   }
 
   void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
-                       int32_t texHeight, uint32_t mipLevels) {
+                       int32_t texHeight, uint32_t mip_levels) {
     // Check if image format supports linear blitting.
     VkFormatProperties formatProperties;
     vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat,
@@ -2121,7 +2117,7 @@ class VulkanTutorial {
     int32_t mipWidth = texWidth;
     int32_t mipHeight = texHeight;
 
-    for (uint32_t i = 1; i < mipLevels; i++) {
+    for (uint32_t i = 1; i < mip_levels; i++) {
       barrier.subresourceRange.baseMipLevel = i - 1;
       barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
       barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -2164,7 +2160,7 @@ class VulkanTutorial {
       if (mipHeight > 1) mipHeight /= 2;
     }
 
-    barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+    barrier.subresourceRange.baseMipLevel = mip_levels - 1;
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
