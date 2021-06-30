@@ -1,10 +1,10 @@
-# Vulkan Tutorial
-
-This is heavily based on [this tutorial](https://vulkan-tutorial.com), all hail 
-goes to this guy. Sry for 2k lines in one file.
+# Vulkan Fun
+This is heavily based on [this tutorial](https://vulkan-tutorial.com), all the
+credit goes to this guy. Sry for 2k lines in one file. I'm working on it... =)  
+This was part of an exercise for a University course _Introduction to Computer
+Graphics_.
 
 ### General
-
 Since this is build completely in Linux it can't be assured it will run on 
 Windows or OSX. But shouldn't be too hard to modify the project to your OS.
 
@@ -33,16 +33,16 @@ sudo apt-get install libglfw3-dev libglm-dev glslang-dev glslang-tools libvulkan
 #### Build and run
 * Clone the project:
 
-```git clone https://github.com/tylernewnoise/VulkanTutorial.git```
+```git clone https://github.com/tylernewnoise/VulkanFun.git```
 * ~~Build the shaders:~~
 ```
-$ cd VulkanTutorial
+$ cd VulkanFun
 $ cd data/shaders
 $ ./compileShaders.sh
 ```
 * Build the application:
  ```
- $ cd VulkanTutorial
+ $ cd VulkanFun
  $ mkdir build
  $ cd build
  $ cmake ..
@@ -51,7 +51,7 @@ $ ./compileShaders.sh
 
 * Run it:
 
-```$ ./VulkanTut```
+```$ ./VulkanFun```
 
 If everything went well you should see the earth or a gun (see below for 
 example screenshots).
@@ -70,7 +70,7 @@ _visible_):
 * loading vertex and fragment shaders
 * resizable window
 * depth buffering
-* [Phong shading](https://en.wikipedia.org/wiki/Phong_shading)
+* [Phong Reflection_Model](https://en.wikipedia.org/wiki/Phong_reflection_model)
 * [Mipmaps](https://en.wikipedia.org/wiki/Mipmap)
 * [MultiSample AntiAliasing](https://en.wikipedia.org/wiki/Multisample_anti-aliasing)
 * [Sample Shading](https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#primsrast-sampleshading)
