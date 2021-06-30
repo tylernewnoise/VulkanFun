@@ -847,8 +847,8 @@ class VulkanTutorial {
         VK_CULL_MODE_BACK_BIT;  // What triangles are dropped? Frontside,
                                 // backside or triangle?
     rasterizer.frontFace =
-        VK_FRONT_FACE_CLOCKWISE;  // Clockwise or counterclockwise triangle
-                                  // definition.
+        VK_FRONT_FACE_COUNTER_CLOCKWISE;  // Clockwise or counterclockwise
+                                          // triangle definition.
     rasterizer.depthBiasEnable =
         VK_FALSE;  // Calculate constant value onto depth value.
 
@@ -1174,16 +1174,16 @@ class VulkanTutorial {
         Vertex vertex = {};
 
         vertex.pos = {attrib.vertices[3 * index.vertex_index + 0],
-                      attrib.vertices[3 * index.vertex_index + 2],
-                      attrib.vertices[3 * index.vertex_index + 1]};
+                      attrib.vertices[3 * index.vertex_index + 1],
+                      attrib.vertices[3 * index.vertex_index + 2]};
 
         if (attrib.normals.empty()) {
           throw std::runtime_error("Model has no normals!");
         }
 
         vertex.normal = {attrib.normals[3 * index.normal_index + 0],
-                         attrib.normals[3 * index.normal_index + 2],
-                         attrib.normals[3 * index.normal_index + 1]};
+                         attrib.normals[3 * index.normal_index + 1],
+                         attrib.normals[3 * index.normal_index + 2]};
 
         vertex.texCoord = {
             attrib.texcoords[2 * index.texcoord_index + 0],
